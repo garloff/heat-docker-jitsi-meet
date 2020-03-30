@@ -193,8 +193,8 @@ resources:
       network: {get_resource: net_jitsi}
       cidr: 192.168.10.0/24
       # OTC
-      #dns_nameservers: [ 100.125.4.25, 9.9.9.9 ]
-      dns_nameservers: [ 9.9.9.9, 8.8.8.8 ]
+      dns_nameservers: [ 100.125.4.25, 9.9.9.9 ]
+      #dns_nameservers: [ 9.9.9.9, 8.8.8.8 ]
       allocation_pools:
         -
           start: 192.168.10.100
@@ -210,7 +210,7 @@ resources:
       external_gateway_info:
         network: {get_param: public}
         # OTC
-        # enable_snat: true     
+        enable_snat: true
 
   router_interface:
     type: OS::Neutron::RouterInterface
