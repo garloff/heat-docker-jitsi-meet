@@ -172,6 +172,7 @@ resources:
           protocol: tcp
           port_range_min: 8443
           port_range_max: 8443
+          # Note: This assumes a public_url ending in 8443, TODO: adjust
         - remote_ip_prefix: 0.0.0.0/0
           protocol: udp
           port_range_min: 10000

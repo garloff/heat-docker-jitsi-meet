@@ -15,6 +15,9 @@ is what these scripts and templates solve for you.
 * Create a ``jitsi-user-XXX.yml`` file and set ``jitsi_user``, ``jitsi_password``, ``public_url``,
   ``letsenc_mail`` and ``letsenc_domain``. (The latter two are unused by default. Protect the yml file!)
 
+* Adjust the security group rule with port 8443 in ``jitsi_stack.yml`` to match you ``public_url``
+  port. (TODO: Will be improved.)
+
 * You need to also define ``image_jitsi``, ``flavor_jitsi``, ``availability_zone`` and ``public``
   (the network from which to allocate public floating IPs from) to match your cloud.
   The defaults are from OTC.
@@ -46,12 +49,24 @@ is what these scripts and templates solve for you.
 After checking prerequisites and filling in the configuration (see templates),
 run ``./create-jitsi.sh USERNM`` to create a stack with the ``jitsi-user-USERNM.yml``
 environment configuration. The script will output the progress on the created server.
+
+The ``cleanup-jitsi.sh USERNM`` is only required if your heat implementation struggles
+to clean up everything properly. which I have only seen on OTC.
+
+After you have deployed the stack successfully, you can connect to the endpoint as
+defined in ``public_url``. Guests can join open rooms, but rooms can only be activated
+by authenticated users -- the one that is defined in your ``jitsi-user-USERNM.yml``
+file.
+
 You can access the server afterwards with ``ssh -i jitsi-USERNM.ssh linux@FIP``,
 where you replace ``USERNM`` with the username used above, ``FIP`` with the floating
 IP address assigned to the server and ``linux`` with the default username of the image.
 
-The ``cleanup-jitsi.sh USERNM`` is only required if your heat implementation struggles
-to clean up everything properly. which I have only seen on OTC.
+Get root and use ``docker exec -it root_prosody_1 prosodyctl --config /config/prosody.cfg.lua adduser USERNM@meet.jitsi``
+on this server to deploy another authenticated user that can create rooms.
+
+Refer to the docker-jitsi-meet(https://github.com/jitsi/docker-jitsi-meet/) documentation
+for more info.
 
 ## License
 
