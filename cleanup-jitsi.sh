@@ -7,7 +7,7 @@
 #cd ~
 source .ostackrc.JITSI
 STACK=$(openstack stack list -f value -c "Stack Name" -c "Stack Status" | grep jitsi)
-STACK_NM=${1:-${STACK% *}}
+STACK_NM=${STACK% *}
 if test -z "$STACK_NM"; then echo "Could not find jitsi stack to delete."; exit 1; fi
 if test -n "$1"; then
   if test "$STACK_NM" != "jitsi-$1"; then
