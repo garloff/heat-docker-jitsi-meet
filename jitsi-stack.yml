@@ -41,7 +41,8 @@ parameters:
 
   letsenc_domain:
     type: string
-    default: {get_param: public_domain}
+    default: ""
+    # Empty will default to public_domain
 
   # If you set this, no cert.crt/key will get copied in
   letsenc_mail:
@@ -108,6 +109,7 @@ resources:
                   public_url: {get_param: public_url}
                   letsenc_mail: {get_param: letsenc_mail}
                   letsenc_domain: {get_param: letsenc_domain}
+                  tweak_ideal_height: {get_param: tweak_ideal_height}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -134,7 +136,9 @@ resources:
                   sed -i "s@^#DOCKER_HOST_ADDRESS=.*\$@DOCKER_HOST_ADDRESS=$IP@" .env
                   if test -n "letsenc_mail"; then
                     sed -i 's/^#LETSENCRYPT_EMAIL=.*$/LETSENCRYPT_EMAIL=letsenc_mail/' .env
-                    sed -i 's@^#LETSENCRYPT_DOMAIN=.*$@LETSENCRYPT_DOMAIN=letsenc_domain@' .env
+                    LETSENC_DOM="letsenc_domain"
+                    if test -z "$LETSENC_DOM"; then LETSENC_DOM="public_domain"; fi
+                    sed -i "s@^#LETSENCRYPT_DOMAIN=.*\$@LETSENCRYPT_DOMAIN=$LETSENC_DOM@" .env
                   fi
                   #sed -i 's@^#ETHERPAD_URL_BASE@ETHERPAD_URL_BASE@' .env
                   sed -i 's@^#ENABLE_AUTH@ENABLE_AUTH@' .env
