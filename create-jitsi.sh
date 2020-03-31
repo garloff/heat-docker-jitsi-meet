@@ -40,6 +40,25 @@ date
 # If we interrupted, let's not recreate the stack, but just track progress
 STATUS=$(openstack stack show jitsi-$1 -f value -c stack_status 2>/dev/null)
 if test -z "$STATUS"; then
+  # Copy config specific cert files
+  if test -r cert-$1.crt; then
+    cp -p cert-$1.crt cert.crt
+    cp -p cert-$1.key cert.key
+    openssl x509 -in cert.crt -noout -text | grep '\(DNS:\|CN\|Issuer:\|Not After\)'
+  elif test ! -r cert.crt; then
+    # Detect LETSENCRYPT usage
+    if grep '^ *letsenc_mail:' jitsi-user-$1.yml >/dev/null 2>&1; then
+      # We are using LetsEncrypt, empty cert files will do
+      touch cert.crt
+      touch cert.key
+      chmod 0600 cert.key
+    else
+      echo "Need to provide cert-$1.crt and cert-$1.key."
+      exit 3
+    fi
+  else
+    openssl x509 -in cert.crt -noout -text | grep '\(DNS:\|CN\|Issuer:\|Not After\)'
+  fi
   openstack stack create --timeout 21 -e jitsi-user-$1.yml -t jitsi-stack.yml jitsi-$1 || exit 2
   sleep 60
 else

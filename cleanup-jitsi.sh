@@ -26,18 +26,14 @@ openstack stack delete -y --wait $STACK_NM
 STACK=$(openstack stack list -f value -c "Stack Name" -c "Stack Status")
 if ! [[ "$STACK" == *"$STACK_NM"* ]]; then exit 0; fi
 openstack server list
-for srv in jitsi; do
-  openstack server delete $srv
-done
+openstack server delete $STACK_NM
 STACK=$(openstack stack list -f value -c "Stack Name" -c "Stack Status")
 if ! [[ "$STACK" == *"$STACK_NM"* ]]; then exit 0; fi
 openstack stack delete -y --wait $STACK_NM
 STACK=$(openstack stack list -f value -c "Stack Name" -c "Stack Status")
 openstack stack list
 if ! [[ "$STACK" == *"$STACK_NM"* ]]; then exit 0; fi
-for sg in jitsi; do
-  openstack security group delete $sg
-done
+openstack security group delete $STACK_NM
 openstack stack delete -y --wait $STACK_NM
 echo "Stack should be gone now ..."
 openstack stack list
