@@ -55,8 +55,8 @@ done
 echo "Jitsi address: $JITSI_ADDRESS"
 # Optional .dyndns allows for updating Dynamic DNS server via REST call
 PUB_DOM=$(grep ' public_domain:' jitsi-user-$1.yml | sed 's/^[^:]*: *\(.*\) *$/\1/')
-test -e .dyndns && source .dyndns
-test -n "$DURL" && curl -k "$DURL"
+if test -e .dyndns; then source .dyndns; fi
+if test -n "$DURL"; then curl -k "$DURL"; fi
 # Those two could contain sensitive data, so clear again
 unset DPASS DURL
 STATUS=$(openstack stack show jitsi-$1 -f value -c stack_status)

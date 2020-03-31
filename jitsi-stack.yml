@@ -36,7 +36,7 @@ parameters:
     type: string
 
   public_port:
-    type: integer
+    type: number
     default: 8443
 
   letsenc_domain:
@@ -54,7 +54,14 @@ parameters:
     default: ""
     # By default https://{get_param: public_domain}:{get_param: public_port}/ will be used
 
- 
+  tweak_ideal_height:
+    type: number
+    default: 720
+
+  tweak_channelLastN:
+    type: number
+    default: -1
+
 ##########
 resources:
 
@@ -95,6 +102,9 @@ resources:
           - content: {get_file: cert.key}
             path: /root/cert.key
             permissions: 0600
+          - content: {get_file: enable-constraints.sed}
+            path: /root/enable-constraints.sed
+            permissions: 0644
           - content:
               str_replace:
                 params:
@@ -106,6 +116,8 @@ resources:
                   public_url: {get_param: public_url}
                   letsenc_mail: {get_param: letsenc_mail}
                   letsenc_domain: {get_param: letsenc_domain}
+                  tweak_ideal_height: {get_param: tweak_ideal_height}
+                  tweak_channelLastN: {get_param: tweak_channelLastN}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -117,6 +129,9 @@ resources:
                   systemctl enable docker
                   systemctl restart docker
                   mkdir -p ~/.jitsi-meet-cfg/{web/letsencrypt,transcripts,prosody,jicofo,jvb}
+                  mkdir -p ~/.jitsi-meet-cfg/web/nginx
+                  # Generate Diffie-Hellmann parameters for SSL
+                  openssl dhparam -out ~/.jitsi-meet-cfg/web/nginx/dhparams.pem 2048 &
                   git clone https://github.com/jitsi/docker-jitsi-meet
                   cd docker-jitsi-meet
                   make
@@ -142,15 +157,30 @@ resources:
                   sed -i 's@^#AUTH_TYPE=@AUTH_TYPE=@' .env
                   #docker-compose -f ~/docker-compose.yml -f ~/etherpad.yml up -d
                   docker-compose -f ~/docker-compose.yml up -d
-                  # Deploy SSL cert
-                  openssl dhparam -out ~/.jitsi-meet-cfg/web/nginx/dhparams.pem 2048
                   # Only if not using LETSENCRYPT
                   if test -z "letsenc_mail"; then
                     cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
                     cp -p cert.key ~/.jitsi-meet-cfg/web/keys/cert.key
                   fi
+                  if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
+                     sed -i "s@^\(.*ideal:\)[ 0-9]*@\1 tweak_ideal_height@" ~/.jitsi-meet-cfg/web/config.js
+                     sed -i "s@^\(.*min:\)[ 0-9]*@\1 180@" ~/.jitsi-meet-cfg/web/config.js
+                     # TODO: Enable the complete Constraints section
+                     sed -f enable-constraints.sed -i ~/.jitsi-meet-cfg/web/config.js
+                     # TODO: Ensure Simulcast is NOT disabled
+                     sed -i 's@^ */* *disableSimulcast:.*$@    disableSimulcast: false,@' ~/.jitsi-meet-cfg/web/config.js
+                     # TODO: Add tweak to enableLayerSuspension
+                     sed -i 's@^ */* *enableLayerSuspension:.*$@    enableLayerSuspension: true,@' ~/.jitsi-meet-cfg/web/config.js
+                     # TODO: Allow SuspendVideo
+                     #sed -i 's@^ */* *disableSuspendVideo:.*$@    disableSuspendVideo: false,@'  ~/.jitsi-meet-cfg/web/config.js
+                     # TODO: StartVideoMuted: 10 enablement
+                  fi
+                  if test -n "tweak_channelLastN" -a "tweak_channelLastN" != "-1"; then
+                    sed -i 's@channelLastN: [-0-9]*@channelLastN: tweak_channelLastN@' ~/.jitsi-meet-cfg/web/config.js
+                  fi
                   # Deploy one user
                   docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register jitsi_user meet.jitsi jitsi_password
+                  # Restart web container to make SSL/height changes effective
                   docker restart root_web_1
                   # TODO: 
                   # Update DNS entry for garloff6.de
