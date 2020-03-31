@@ -53,6 +53,9 @@ parameters:
     default: ""
     # By default https://{get_param: public_domain}:{get_param: public_port}/ will be used
 
+  tweak_ideal_height:
+    type: integer
+    default: 720
  
 ##########
 resources:
@@ -146,8 +149,12 @@ resources:
                     cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
                     cp -p cert.key ~/.jitsi-meet-cfg/web/keys/cert.key
                   fi
+                  if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
+                     sed -i "s@^\(.*ideal:\)[0-9]*@\1 tweak_ideal_height@" ~/.jitsi-meet-cfg/web/config.js
+                  fi
                   # Deploy one user
                   docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register jitsi_user meet.jitsi jitsi_password
+                  # Restart web container to make SSL/height changes effective
                   docker restart root_web_1
                   # TODO: 
                   # Update DNS entry for garloff6.de
