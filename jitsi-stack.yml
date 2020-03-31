@@ -154,7 +154,7 @@ resources:
                     cp -p cert.key ~/.jitsi-meet-cfg/web/keys/cert.key
                   fi
                   if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
-                     sed -i "s@^\(.*ideal:\)[0-9]*@\1 tweak_ideal_height@" ~/.jitsi-meet-cfg/web/config.js
+                     sed -i "s@^\(.*ideal:\)[ 0-9]*@\1 tweak_ideal_height@" ~/.jitsi-meet-cfg/web/config.js
                   fi
                   # Deploy one user
                   docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register jitsi_user meet.jitsi jitsi_password
