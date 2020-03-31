@@ -54,8 +54,9 @@ while test -z "$JITSI_ADDRESS"; do
 done
 echo "Jitsi address: $JITSI_ADDRESS"
 # Optional .dyndns allows for updating Dynamic DNS server via REST call
+PUB_DOM=$(grep ' public_domain:' jitsi-user-$1.yml | sed 's/^[^:]*: *\(.*\) *$/\1/')
 test -e .dyndns && source .dyndns
-test -n "$DURL" && curl -k $DURL
+test -n "$DURL" && curl -k "$DURL"
 # Those two could contain sensitive data, so clear again
 unset DPASS DURL
 STATUS=$(openstack stack show jitsi-$1 -f value -c stack_status)
@@ -87,4 +88,11 @@ if test $LEN != $DISP; then
 fi
 openstack stack list
 date
-echo "Deployed jitsi-$1 on https://garloff6.de:8443/ ($JITSI_ADDRESS) in $((STOP-START))s"
+if grep ' public_url:' jitsi-user-$1.yml >/dev/null 2>/dev/null; then 
+  PUBLIC_URL=$(grep ' public_url:' jitsi-user-$1.yml | sed 's/^[^:]*: *\(.*\) *$/\1/')
+else
+  PUB_PRT=$(grep ' public_port:' jitsi-user-$1.yml | sed 's/^[^:]*: *\(.*\) *$/\1/')
+  PUB_PRT=${PUB_PRT:-443}
+  PUBLIC_URL="https://$PUB_DOM:$PUB_PRT/"
+fi
+echo "Deployed jitsi-$1 on $PUBLIC_URL ($JITSI_ADDRESS) in $((STOP-START))s"

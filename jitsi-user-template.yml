@@ -4,7 +4,8 @@ parameter_defaults:
   jitsi_user: JITSI_USERNAME
   # Note: @meet.jitsi will be automatically assumed
   jitsi_password: JITSI_PASSWORD
-  public_url: URL_FOR_JITSI
-  letsenc_mail: MAIL_FOR_LETSENCRYPT
-  letsenc_domain: DOMAIN_FOR_LETSENCRYPT
+  public_domain: DOMAIN_FOR_JITSI
+  public_port: PORT_FOR_JITSI
+  #letsenc_mail: MAIL_FOR_LETSENCRYPT
+  #letsenc_domain: DOMAIN_FOR_LETSENCRYPT
 
