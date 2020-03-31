@@ -25,13 +25,18 @@ is what these scripts and templates solve for you.
   (the network from which to allocate public floating IPs from) to match your cloud.
   The defaults are from OTC.
 
-* Optionally set up a file ``.dyndns`` which is sourced and which can set a ``DURL`` variable 
+* Optionally set up a file ``.dyndns`` which is sourced and where you can set a ``DURL`` variable 
   for a HTTP (REST) call to set up dynamic DNS. (The floating IP is allocated on the fly and will
-  thus change every time.
+  thus change every time.) The script gets passed ``PUB_DOM`` and ``JITSI_ADDRESS`` environment
+  variables, so you could do all the work from there and not set a ``DURL`` alternatively.
 
 * Optionally, you can use ``tweak_ideal_height`` to set a lower default resolution than 720p.
   You can try ``540``, ``480`` or ``360`` if you have many participants with limited bandwidth (or 
-  run into server upstream bandwidth limitations for large conferences).
+  run into server upstream bandwidth limitations for large conferences). If you use ``tweak_ideal_height``,
+  a few more adjustments are made: the minimal height is lowered to 180, SimulCast is enabled (which
+  is default anyway) and LayerSuppresion is enabled (not enabled by default). You can also use
+  ``tweak_channelLastN`` allows you to limit the number of videos (from the last N speakers) to be
+  active, default is ``-1`` (unlimited).
 
 ## Requirements
 

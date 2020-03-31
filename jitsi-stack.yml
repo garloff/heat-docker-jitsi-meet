@@ -57,7 +57,11 @@ parameters:
   tweak_ideal_height:
     type: number
     default: 720
- 
+
+  tweak_channelLastN:
+    type: number
+    default: -1
+
 ##########
 resources:
 
@@ -113,6 +117,7 @@ resources:
                   letsenc_mail: {get_param: letsenc_mail}
                   letsenc_domain: {get_param: letsenc_domain}
                   tweak_ideal_height: {get_param: tweak_ideal_height}
+                  tweak_channelLastN: {get_param: tweak_channelLastN}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -169,6 +174,9 @@ resources:
                      # TODO: Allow SuspendVideo
                      #sed -i 's@^ */* *disableSuspendVideo:.*$@    disableSuspendVideo: false,@'  ~/.jitsi-meet-cfg/web/config.js
                      # TODO: StartVideoMuted: 10 enablement
+                  fi
+                  if test -n "tweak_channelLastN" -a "tweak_channelLastN" != "-1"; then
+                    sed -i 's@channelLastN: [-0-9]*@channelLastN: tweak_channelLastN@' ~/.jitsi-meet-cfg/web/config.js
                   fi
                   # Deploy one user
                   docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register jitsi_user meet.jitsi jitsi_password
