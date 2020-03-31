@@ -109,6 +109,7 @@ resources:
                   public_url: {get_param: public_url}
                   letsenc_mail: {get_param: letsenc_mail}
                   letsenc_domain: {get_param: letsenc_domain}
+                  tweak_ideal_height: {get_param: tweak_ideal_height}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
