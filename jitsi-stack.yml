@@ -159,6 +159,7 @@ resources:
                   fi
                   if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
                      sed -i "s@^\(.*ideal:\)[ 0-9]*@\1 tweak_ideal_height@" ~/.jitsi-meet-cfg/web/config.js
+                     sed -i "s@^\(.*min:\)[ 0-9]*@\1 180@" ~/.jitsi-meet-cfg/web/config.js
                      # TODO: Enable the complete Constraints section
                      sed -f enable-constraints.sed -i ~/.jitsi-meet-cfg/web/config.js
                      # TODO: Ensure Simulcast is NOT disabled
