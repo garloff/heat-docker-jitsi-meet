@@ -29,6 +29,10 @@ is what these scripts and templates solve for you.
   for a HTTP (REST) call to set up dynamic DNS. (The floating IP is allocated on the fly and will
   thus change every time.
 
+* Optionally, you can use ``tweak_ideal_height`` to set a lower default resolution than 720p.
+  You can try ``540``, ``480`` or ``360`` if you have many participants with limited bandwidth (or 
+  run into server upstream bandwidth limitations for large conferences).
+
 ## Requirements
 
 * You need to have a ``.ostackrc.JITSI`` file that sets your environment variables such to make
