@@ -36,7 +36,7 @@ parameters:
     type: string
 
   public_port:
-    type: integer
+    type: number
     default: 8443
 
   letsenc_domain:
@@ -48,13 +48,13 @@ parameters:
     type: string
     default: ""
 
-   public_url:
+  public_url:
     type: string
     default: ""
     # By default https://{get_param: public_domain}:{get_param: public_port}/ will be used
 
   tweak_ideal_height:
-    type: integer
+    type: number
     default: 720
  
 ##########
