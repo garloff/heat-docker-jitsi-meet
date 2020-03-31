@@ -10,20 +10,20 @@ is what these scripts and templates solve for you.
 
 ## Configuration
 
-* Get SSL certificates and drop them in cert.crt and cert.key. (key is sensitive, protect it!)
+* Create a ``jitsi-user-XXX.yml`` file and set ``jitsi_user``, ``jitsi_password``, 
+  ``public_domain``, ``public_port``. If you want set ``letsenc_mail``, the deployment stack
+  will auto-generate Let's Encrypt certs. You can set ``letsenc_domain`` then as well (defaults
+  to ``public_domain``).
+  You can override ``public_url``, it will otherwise default to ``https://<public_domain>:<public_port>/``.
+  Protect this file, as it will contain the ``jitsi_password``.
 
-* Create a ``jitsi-user-XXX.yml`` file and set ``jitsi_user``, ``jitsi_password``, ``public_url``,
-  ``letsenc_mail`` and ``letsenc_domain``. (The latter two are unused by default. Protect the yml file!)
-
-* Adjust the security group rule with port 8443 in ``jitsi_stack.yml`` to match you ``public_url``
-  port. (TODO: Will be improved.)
+* If you don't use Let's Encrypt, you need to provide valid SSL certificates in ``cert.crt`` 
+  and ``cert.key`` for https to work. Protect ``cert.key``. If you do use Let's Encrypt, those 
+  files still need to exist, but you can use empty files -- they won't get used.
 
 * You need to also define ``image_jitsi``, ``flavor_jitsi``, ``availability_zone`` and ``public``
   (the network from which to allocate public floating IPs from) to match your cloud.
   The defaults are from OTC.
-
-* Optionally you can edit the script in the heat template to enable LETSENCRYPT and comment
-  out the copying in of the certificates. (Sorry, this should be configurabe as well.)
 
 * Optionally set up a file ``.dyndns`` which is sourced and which can set a ``DURL`` variable 
   for a HTTP (REST) call to set up dynamic DNS. (The floating IP is allocated on the fly and will
@@ -31,7 +31,7 @@ is what these scripts and templates solve for you.
 
 ## Requirements
 
-* You need to have a ``.ostackrc.JITSI`` file that sets you environment variables such to make
+* You need to have a ``.ostackrc.JITSI`` file that sets your environment variables such to make
   the openstack command line tools work -- setting ``OS_CLOUD`` (plus settings in 
   ``~/.config/openstack/clouds.yaml`` and ``secure.yaml``) or old-style full set of ``OS_`` 
   variables.
