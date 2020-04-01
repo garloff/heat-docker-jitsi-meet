@@ -106,6 +106,11 @@ for more info.
 
 * Allow tweaking internal domain name which is currently defaulting to meet.jitsi.
 
+* I have a script that sets up traffic shaping with HTB which might be useful. Adjust it,
+  test it and integrate if it turns out to be helpful.
+
+Contributions (ideally as Pull Requests) are welcome!
+
 ## License
 
 Use it under the terms of the Creative Commons with attribution and share-alike 3.0 terms.
