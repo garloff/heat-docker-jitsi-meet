@@ -59,33 +59,50 @@ is what these scripts and templates solve for you.
   have access to some domain and feed the IP address to the DNS service, via some DynDNS
   or designate or similar protocol -- the magic is done in the ``.dnydns`` file. You can
   provide SSL certs or use the Let's Encrypt magic to get certs on the fly. (Obviously,
-  you can also work with IP addresses, but I can't recommend this.) Allowing for using a
-  pre-allocated FIP that would allow you to work with a pseudo-static public IP is on my
-  TODO list.
+  you can also work with IP addresses, but I can't recommend this.)
 
 ## Usage
 
 After checking prerequisites and filling in the configuration (see templates),
 run ``./create-jitsi.sh USERNM`` to create a stack with the ``jitsi-user-USERNM.yml``
 environment configuration. The script will output the progress on the created server.
+It will typically run for roughly 10mins.
 
 The ``cleanup-jitsi.sh USERNM`` is only required if your heat implementation struggles
-to clean up everything properly. which I have only seen on OTC.
+to clean up everything properly, which I have only seen on OTC. Otherwise you can also
+simply use an ``openstack stack delete jitsi-USERNM``.
 
 After you have deployed the stack successfully, you can connect to the endpoint as
-defined in ``public_url``. Guests can join open rooms, but rooms can only be activated
+defined in ``public_url`` (defaults to https://``public_domain``:``public_port``/).
+In the configured setup, guests can join open rooms, but rooms can only be activated
 by authenticated users -- the one that is defined in your ``jitsi-user-USERNM.yml``
 file.
 
 You can access the server afterwards with ``ssh -i jitsi-USERNM.ssh linux@FIP``,
 where you replace ``USERNM`` with the username used above, ``FIP`` with the floating
 IP address assigned to the server and ``linux`` with the default username of the image.
+(Obviously instead of FIP, you can use the DNS name that you need to register anyway,
+so ``ssh -i jitsi-USERNM.ssh linux@public_domain``.)
 
-Get root and use ``docker exec -it root_prosody_1 prosodyctl --config /config/prosody.cfg.lua adduser USERNM@meet.jitsi``
-on this server to deploy another authenticated user that can create rooms.
+Inside the VM, you can do useful things such as looking at the docker logs or
+becoming root and using
+``docker exec -it root_prosody_1 prosodyctl --config /config/prosody.cfg.lua adduser USERNM2@meet.jitsi``
+to deploy another authenticated user that can create rooms.
 
 Refer to the docker-jitsi-meet(https://github.com/jitsi/docker-jitsi-meet/) documentation
 for more info.
+
+## TODO
+
+* Allow for more than one user to be registered on installation.
+
+* Watch out for more tweaks to deal with limited bandwidth for large conferences.
+
+* Support pre-allocated floating IP address to allow for pseudo-static DNS setup.
+
+* Test the Let's Encrypt integration.
+
+* Prepare for other more generic images.
 
 ## License
 
