@@ -76,7 +76,7 @@ After you have deployed the stack successfully, you can connect to the endpoint 
 defined in ``public_url`` (defaults to https://``public_domain``:``public_port``/).
 In the configured setup, guests can join open rooms, but rooms can only be activated
 by authenticated users -- the one that is defined in your ``jitsi-user-USERNM.yml``
-file.
+file. Use ``USERNM@meet.jitsi`` here.
 
 You can access the server afterwards with ``ssh -i jitsi-USERNM.ssh linux@FIP``,
 where you replace ``USERNM`` with the username used above, ``FIP`` with the floating
@@ -103,6 +103,8 @@ for more info.
 * Test the Let's Encrypt integration.
 
 * Prepare for other more generic images.
+
+* Allow tweaking internal domain name which is currently defaulting to meet.jitsi.
 
 ## License
 
