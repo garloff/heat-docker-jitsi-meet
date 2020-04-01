@@ -50,6 +50,7 @@ is what these scripts and templates solve for you.
   for the SUSEfirewall2 disablement and the default username, there is not much you'd need
   to adjust to make it work elsewhere. Be sure to not use any image that allows for ssh
   password auth, though, if you are interested in not becoming a target for hackers ...
+  Find my image on http://kfg.images.obs-website.eu-de.otc.t-systems.com/
 
 * On some old heat implementations (including OTC's), you may need a cloud-init with PR#290 
   fixed in the image.
