@@ -14,17 +14,20 @@ parameters:
     type: string
     constraints:
       - custom_constraint: nova.flavor
-    default: s2.large.4
+    #OTC default: s2.large.4
+    default: 2C-4GB-10GB
 
   availability_zone:
     type: string
-    default: eu-de-03
+    #OTC default: eu-de-03
+    default: nova
 
   public:
     type: string
     constraints:
       - custom_constraint: neutron.network
-    default: admin_external_net
+    #OTC default: admin_external_net
+    default: ext-net
 
   jitsi_user:
     type: string

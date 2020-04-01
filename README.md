@@ -24,7 +24,7 @@ is what these scripts and templates solve for you.
 
 * You need to also define ``image_jitsi``, ``flavor_jitsi``, ``availability_zone`` and ``public``
   (the network from which to allocate public floating IPs from) to match your cloud.
-  The defaults are from OTC.
+  The defaults are working on CityCloud, OTC specific changes are commented out.
 
 * Optionally set up a file ``.dyndns`` which is sourced and where you can set a ``DURL`` variable 
   for a HTTP (REST) call to set up dynamic DNS. (The floating IP is allocated on the fly and will
