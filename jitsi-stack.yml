@@ -100,8 +100,8 @@ resources:
           - docker
           - docker-compose
           - make
+          - curl
         write_files:
-          # Remove those two if you don't need them
           - content: {get_file: cert.crt}
             path: /root/cert.crt
             permissions: 0644
