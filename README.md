@@ -55,6 +55,14 @@ is what these scripts and templates solve for you.
 * On some old heat implementations (including OTC's), you may need a cloud-init with PR#290 
   fixed in the image.
 
+* The deployment allocates a floating IP address to expose the Jitsi service on. You need to
+  have access to some domain and feed the IP address to the DNS service, via some DynDNS
+  or designate or similar protocol -- the magic is done in the ``.dnydns`` file. You can
+  provide SSL certs or use the Let's Encrypt magic to get certs on the fly. (Obviously,
+  you can also work with IP addresses, but I can't recommend this.) Allowing for using a
+  pre-allocated FIP that would allow you to work with a pseudo-static public IP is on my
+  TODO list.
+
 ## Usage
 
 After checking prerequisites and filling in the configuration (see templates),
