@@ -10,20 +10,21 @@ is what these scripts and templates solve for you.
 
 ## Configuration
 
-* Create a ``jitsi-user-XXX.yml`` file and set ``jitsi_user``, ``jitsi_password``, 
+* Create a ``jitsi-user-USERNM.yml`` file and set ``jitsi_user``, ``jitsi_password``, 
   ``public_domain``, ``public_port``. If you want set ``letsenc_mail``, the deployment stack
   will auto-generate Let's Encrypt certs. You can set ``letsenc_domain`` then as well (defaults
-  to ``public_domain``).
+  to ``public_domain``). The ``USERNM`` is an identifier for a specific config, as it contains
+  the ``jitsi_user``, I suggest to tie its naming to it.
   You can override ``public_url``, it will otherwise default to ``https://<public_domain>:<public_port>/``.
   Protect this file, as it will contain the ``jitsi_password``.
 
-* If you don't use Let's Encrypt, you need to provide valid SSL certificates in ``cert.crt`` 
-  and ``cert.key`` for https to work. Protect ``cert.key``. If you do use Let's Encrypt, those 
-  files still need to exist, but you can use empty files -- they won't get used.
+* If you don't use Let's Encrypt, you need to provide valid SSL certificates in ``cert-USERNM.crt`` 
+  and ``cert-USERNM.key`` for https to work. Protect ``cert.key``. If you do use Let's Encrypt, you
+  don't need them. Note: I have not yet tested the automatic key generation via Let's Encrypt yet ...
 
 * You need to also define ``image_jitsi``, ``flavor_jitsi``, ``availability_zone`` and ``public``
   (the network from which to allocate public floating IPs from) to match your cloud.
-  The defaults are from OTC.
+  The defaults are working on CityCloud, OTC specific changes are commented out.
 
 * Optionally set up a file ``.dyndns`` which is sourced and where you can set a ``DURL`` variable 
   for a HTTP (REST) call to set up dynamic DNS. (The floating IP is allocated on the fly and will
@@ -49,6 +50,7 @@ is what these scripts and templates solve for you.
   for the SUSEfirewall2 disablement and the default username, there is not much you'd need
   to adjust to make it work elsewhere. Be sure to not use any image that allows for ssh
   password auth, though, if you are interested in not becoming a target for hackers ...
+  Find my image on http://kfg.images.obs-website.eu-de.otc.t-systems.com/
 
 * On some old heat implementations (including OTC's), you may need a cloud-init with PR#290 
   fixed in the image.

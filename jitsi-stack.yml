@@ -14,17 +14,20 @@ parameters:
     type: string
     constraints:
       - custom_constraint: nova.flavor
-    default: s2.large.4
+    #OTC default: s2.large.4
+    default: 2C-4GB-10GB
 
   availability_zone:
     type: string
-    default: eu-de-03
+    #OTC default: eu-de-03
+    default: nova
 
   public:
     type: string
     constraints:
       - custom_constraint: neutron.network
-    default: admin_external_net
+    #OTC default: admin_external_net
+    default: ext-net
 
   jitsi_user:
     type: string
@@ -62,6 +65,9 @@ parameters:
     type: number
     default: -1
 
+
+description: Heat stack for Jitsi deployment using docker-jitsi-meet
+
 ##########
 resources:
 
@@ -72,7 +78,7 @@ resources:
   key:
     type: OS::Nova::KeyPair
     properties:
-      name: jitsi_key
+      name: {get_param: "OS::stack_name"}
       save_private_key: true
 
   jitsi_wait_handle:
@@ -212,7 +218,7 @@ resources:
   security_group_jitsi:
     type: OS::Neutron::SecurityGroup
     properties:
-      name: jitsi
+      name: {get_param: "OS::stack_name"}
       rules:
         - remote_ip_prefix: 0.0.0.0/0
           protocol: tcp
@@ -241,11 +247,12 @@ resources:
   net_jitsi:
     type: OS::Neutron::Net
     properties:
-      name: jitsi
+      name: {get_param: "OS::stack_name"}
 
   subnet_jitsi:
     type: OS::Neutron::Subnet
     properties:
+      name: {get_param: "OS::stack_name"}
       network: {get_resource: net_jitsi}
       cidr: 192.168.10.0/24
       # OTC
@@ -263,6 +270,7 @@ resources:
   router:
     type: OS::Neutron::Router
     properties:
+      name: {get_param: "OS::stack_name"}
       external_gateway_info:
         network: {get_param: public}
         # OTC
@@ -281,6 +289,7 @@ resources:
   jitsi_port:
     type: OS::Neutron::Port
     properties:
+      name: {get_param: "OS::stack_name"}
       network_id: {get_resource: net_jitsi}
       fixed_ips:
         - ip_address: 192.168.10.99
@@ -297,7 +306,7 @@ resources:
   jitsi_server:
     type: OS::Nova::Server
     properties:
-      name: jitsi
+      name: {get_param: "OS::stack_name"}
       key_name: {get_resource: key}
       image: {get_param: image_jitsi}
       flavor: {get_param: flavor_jitsi}
