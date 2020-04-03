@@ -198,12 +198,11 @@ resources:
                     sed -i 's@^#JIGASI_SIP_PASSWORD=.*$@JIGASI_SIP_PASSWORD="jigasi_sip_password"@' .env
                     sed -i 's@^#JIGASI_SIP_TRANSPORT=.*$@JIGASI_SIP_TRANSPORT="jigasi_sip_transport"@' .env
                     sed -i 's@^#JIGASI_SIP_PORT=.*$@JIGASI_SIP_PORT="jigasi_sip_port"@' .env
-                    START_JIGASI="-f ~/jigasi.yml"
+                    docker-compose -f ~/docker-compose.yml -f ~/jigasi.yml up -d
                   else
-                    unset START_JIGASI
+                    docker-compose -f ~/docker-compose.yml up -d
                   fi
                   #docker-compose -f ~/docker-compose.yml $START_JIGASI -f ~/etherpad.yml up -d
-                  docker-compose -f ~/docker-compose.yml $START_JIGASI up -d
                   # Only if not using LETSENCRYPT
                   if test -z "letsenc_mail"; then
                     cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
