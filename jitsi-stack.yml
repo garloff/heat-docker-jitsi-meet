@@ -65,6 +65,27 @@ parameters:
     type: number
     default: -1
 
+  # Fill these vars if you want to set up a bridge to SIP
+  jigasi_sip_uri:
+    type: string
+    default: ""
+
+  jigasi_sip_server:
+    type: string
+    default: ""
+    # will be extracted from sip_uri if empty
+
+  jigasi_sip_password:
+    type: string
+    default: ""
+
+  jigasi_sip_transport:
+    type: string
+    default: UDP
+
+  jigasi_sip_port:
+    type: number
+    default: 5060
 
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
@@ -124,6 +145,11 @@ resources:
                   letsenc_domain: {get_param: letsenc_domain}
                   tweak_ideal_height: {get_param: tweak_ideal_height}
                   tweak_channelLastN: {get_param: tweak_channelLastN}
+                  jigasi_sip_uri: {get_param: jigasi_sip_uri}
+                  jigasi_sip_server: {get_param: jigasi_sip_server}
+                  jigasi_sip_password: {get_param: jigasi_sip_password}
+                  jigasi_sip_transport: {get_param: jigasi_sip_transport}
+                  jigasi_sip_port: {get_param: jigasi_sip_port}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -141,9 +167,10 @@ resources:
                   git clone https://github.com/jitsi/docker-jitsi-meet
                   cd docker-jitsi-meet
                   make
-                  cp -p docker-compose.yml etherpad.yml ~
+                  cp -p docker-compose.yml etherpad.yml jigasi.yml ~
                   cp -p env.example ~/.env
                   cd ..
+                  chmod 0600 .env
                   # This is only used internally
                   sed -i 's/passw0rd/p@33W0rd/g' .env
                   PUBLIC_URL="public_url"
@@ -161,8 +188,22 @@ resources:
                   sed -i 's@^#ENABLE_AUTH@ENABLE_AUTH@' .env
                   sed -i 's@^#ENABLE_GUESTS@ENABLE_GUESTS@' .env
                   sed -i 's@^#AUTH_TYPE=@AUTH_TYPE=@' .env
-                  #docker-compose -f ~/docker-compose.yml -f ~/etherpad.yml up -d
-                  docker-compose -f ~/docker-compose.yml up -d
+                  # JIGASI
+                  JIGASI_SIP_URI="jigasi_sip_uri"
+                  if test -n "$JIGASI_SIP_URI"; then
+                    JIGASI_SIP_SERVER="jigasi_sip_server"
+                    if test -z "$JIGASI_SIP_SERVER"; then JIGASI_SIP_SERVER="${JIGASI_SIP_URI##*@}"; fi
+                    sed -i "s/^#JIGASI_SIP_URI=.*\$/JIGASI_SIP_URI=\"$JIGASI_SIP_URI\"/" .env
+                    sed -i "s/^#JIGASI_SIP_SERVER=.*\$/JIGASI_SIP_SERVER=$JIGASI_SIP_SERVER/" .env
+                    sed -i 's@^#JIGASI_SIP_PASSWORD=.*$@JIGASI_SIP_PASSWORD="jigasi_sip_password"@' .env
+                    sed -i 's@^#JIGASI_SIP_TRANSPORT=.*$@JIGASI_SIP_TRANSPORT="jigasi_sip_transport"@' .env
+                    sed -i 's@^#JIGASI_SIP_PORT=.*$@JIGASI_SIP_PORT="jigasi_sip_port"@' .env
+                    START_JIGASI="-f ~/jigasi.yml"
+                  else
+                    unset START_JIGASI
+                  fi
+                  #docker-compose -f ~/docker-compose.yml $START_JIGASI -f ~/etherpad.yml up -d
+                  docker-compose -f ~/docker-compose.yml $START_JIGASI up -d
                   # Only if not using LETSENCRYPT
                   if test -z "letsenc_mail"; then
                     cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
@@ -194,14 +235,22 @@ resources:
 
             path: /root/run.sh
             permissions: 0700
-          - content: |
-              #!/bin/bash
-              export USER=root
-              export USERNAME=$USER
-              export HOME=/$USER
-              cd ~
-              #docker-compose -f ~/docker-compose.yml -f ~/etherpad.yml down
-              docker-compose -f ~/docker-compose.yml down
+          - content:
+              str_replace:
+                params:
+                  jigasi_sip_uri: {get_param: jigasi_sip_uri}
+                template: |
+                  #!/bin/bash
+                  export USER=root
+                  export USERNAME=$USER
+                  export HOME=/$USER
+                  cd ~
+                  #docker-compose -f ~/docker-compose.yml -f ~/etherpad.yml down
+                  if test -n "jigasi_sip_uri"; then
+                    docker-compose -f ~/docker-compose.yml -f ~/jigasi.yml down
+                  else
+                    docker-compose -f ~/docker-compose.yml down
+                  fi
             path: /root/down.sh
             permissions: 0750
 
@@ -239,6 +288,10 @@ resources:
           protocol: udp
           port_range_min: 10000
           port_range_max: 10010
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: udp
+          port_range_min: 5060
+          port_range_max: 5061
 
   ############
   # Networks #
