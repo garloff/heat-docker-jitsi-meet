@@ -39,6 +39,11 @@ is what these scripts and templates solve for you.
   ``tweak_channelLastN`` allows you to limit the number of videos (from the last N speakers) to be
   active, default is ``-1`` (unlimited).
 
+* Optionally you can start SIP integration (jigasi) by specifying ``jigasi_sip_uri`` and
+  ``jigasi_sip_password``. Optionally, you can override the defaults for ``jigasi_sip_server``
+  (extracted from the uri by default), ``jigasi_sip_transport`` (UDP) and ``jigasi_sip_port`` 
+  (5060).
+
 ## Requirements
 
 * You need to have a ``.ostackrc.JITSI`` file that sets your environment variables such to make
