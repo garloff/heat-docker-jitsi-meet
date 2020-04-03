@@ -160,7 +160,7 @@ resources:
                   sysctl -w net.ipv4.ip_forward=1
                   systemctl enable docker
                   systemctl restart docker
-                  mkdir -p ~/.jitsi-meet-cfg/{web/letsencrypt,transcripts,prosody,jicofo,jvb}
+                  mkdir -p ~/.jitsi-meet-cfg/{web/letsencrypt,transcripts,prosody,jicofo,jvb,jigasi}
                   mkdir -p ~/.jitsi-meet-cfg/web/nginx
                   # Generate Diffie-Hellmann parameters for SSL
                   openssl dhparam -out ~/.jitsi-meet-cfg/web/nginx/dhparams.pem 2048 &
