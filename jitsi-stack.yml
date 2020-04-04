@@ -68,16 +68,16 @@ parameters:
   # Fill these vars if you want to set up a bridge to SIP
   jigasi_sip_uri:
     type: string
-    default: ""
+    default:
 
   jigasi_sip_server:
     type: string
-    default: ""
+    default:
     # will be extracted from sip_uri if empty
 
   jigasi_sip_password:
     type: string
-    default: ""
+    default:
 
   jigasi_sip_transport:
     type: string
@@ -86,6 +86,20 @@ parameters:
   jigasi_sip_port:
     type: number
     default: 5060
+
+  jigasi_port_min:
+    type: number
+    default: 20000
+
+  jigasi_port_max:
+    type: number
+    default: 20015
+    # Upstream default is 20050
+
+  # Default room for incoming calls
+  jigasi_default_room:
+    type: string
+    default:
 
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
@@ -150,6 +164,9 @@ resources:
                   jigasi_sip_password: {get_param: jigasi_sip_password}
                   jigasi_sip_transport: {get_param: jigasi_sip_transport}
                   jigasi_sip_port: {get_param: jigasi_sip_port}
+                  jigasi_port_min: {get_param: jigasi_port_min}
+                  jigasi_port_max: {get_param: jigasi_port_max}
+                  jigasi_default_room: {get_param: jigasi_default_room}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -198,6 +215,8 @@ resources:
                     sed -i 's@^#JIGASI_SIP_PASSWORD=.*$@JIGASI_SIP_PASSWORD=jigasi_sip_password@' .env
                     sed -i 's@^#JIGASI_SIP_TRANSPORT=.*$@JIGASI_SIP_TRANSPORT=jigasi_sip_transport@' .env
                     sed -i 's@^#JIGASI_SIP_PORT=.*$@JIGASI_SIP_PORT=jigasi_sip_port@' .env
+                    sed -i 's@^JIGASI_PORT_MIN=.*$@JIGASI_PORT_MIN=jigasi_port_min@' .env
+                    sed -i 's@^JIGASI_PORT_MAX=.*$@JIGASI_PORT_MAX=jigasi_port_max@' .env
                     docker-compose -f ~/docker-compose.yml -f ~/jigasi.yml up -d
                   else
                     docker-compose -f ~/docker-compose.yml up -d
@@ -228,8 +247,12 @@ resources:
                   docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register jitsi_user meet.jitsi jitsi_password
                   # Restart web container to make SSL/height changes effective
                   docker restart root_web_1
-                  # TODO: 
-                  # Update DNS entry for garloff6.de
+                  # Tweak jigasi default room
+                  if test -n "jigasi_default_room" -a -n "$JIGASI_SIP_URI"; then
+                    echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room" >> ~/.jitsi-meet-cfg/jigasi/sip-communicator.properties
+                    docker restart root_jigasi_1
+                  fi
+                  # Signal completion
                   wc_notify --data-binary '{"status": "SUCCESS"}'
 
             path: /root/run.sh
@@ -268,29 +291,38 @@ resources:
     properties:
       name: {get_param: "OS::stack_name"}
       rules:
+          # admin access
         - remote_ip_prefix: 0.0.0.0/0
           protocol: tcp
           port_range_min: 22
           port_range_max: 22
-          # Port 80 needed for letsenc acme challenge?
+          # Port 80 needed for letsenc acme challenge
         - remote_ip_prefix: 0.0.0.0/0
           protocol: tcp
           port_range_min: 80
           port_range_max: 80
         - remote_ip_prefix: 0.0.0.0/0
           protocol: icmp
+          # Harvester
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: tcp
+          port_range_min: 4443
+          port_range_max: 4443
+          # The Web frontend
         - remote_ip_prefix: 0.0.0.0/0
           protocol: tcp
           port_range_min: {get_param: public_port}
           port_range_max: {get_param: public_port}
+          # Jitsi Video Bridge
         - remote_ip_prefix: 0.0.0.0/0
           protocol: udp
           port_range_min: 10000
           port_range_max: 10010
+          # SIP
         - remote_ip_prefix: 0.0.0.0/0
           protocol: udp
-          port_range_min: {get_param: jigasi_sip_port}
-          port_range_max: {get_param: jigasi_sip_port}
+          port_range_min: {get_param: jigasi_port_min}
+          port_range_max: {get_param: jigasi_port_max}
 
   ############
   # Networks #
