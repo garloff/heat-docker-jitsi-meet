@@ -160,8 +160,8 @@ resources:
                   sysctl -w net.ipv4.ip_forward=1
                   systemctl enable docker
                   systemctl restart docker
-                  mkdir -p ~/.jitsi-meet-cfg/{web/letsencrypt,transcripts,prosody,jicofo,jvb,jigasi}
-                  mkdir -p ~/.jitsi-meet-cfg/web/nginx
+                  mkdir -p ~/.jitsi-meet-cfg/{web/letsencrypt,web/nginx,transcripts,prosody,jicofo,jvb,jigasi/log}
+                  chown 999:1000 ~/.jitsi-meet-cfg/jigasi/log
                   # Generate Diffie-Hellmann parameters for SSL
                   openssl dhparam -out ~/.jitsi-meet-cfg/web/nginx/dhparams.pem 2048 &
                   git clone https://github.com/jitsi/docker-jitsi-meet
@@ -193,11 +193,11 @@ resources:
                   if test -n "$JIGASI_SIP_URI"; then
                     JIGASI_SIP_SERVER="jigasi_sip_server"
                     if test -z "$JIGASI_SIP_SERVER"; then JIGASI_SIP_SERVER="${JIGASI_SIP_URI##*@}"; fi
-                    sed -i "s/^#JIGASI_SIP_URI=.*\$/JIGASI_SIP_URI=\"$JIGASI_SIP_URI\"/" .env
+                    sed -i "s/^#JIGASI_SIP_URI=.*\$/JIGASI_SIP_URI=$JIGASI_SIP_URI/" .env
                     sed -i "s/^#JIGASI_SIP_SERVER=.*\$/JIGASI_SIP_SERVER=$JIGASI_SIP_SERVER/" .env
-                    sed -i 's@^#JIGASI_SIP_PASSWORD=.*$@JIGASI_SIP_PASSWORD="jigasi_sip_password"@' .env
-                    sed -i 's@^#JIGASI_SIP_TRANSPORT=.*$@JIGASI_SIP_TRANSPORT="jigasi_sip_transport"@' .env
-                    sed -i 's@^#JIGASI_SIP_PORT=.*$@JIGASI_SIP_PORT="jigasi_sip_port"@' .env
+                    sed -i 's@^#JIGASI_SIP_PASSWORD=.*$@JIGASI_SIP_PASSWORD=jigasi_sip_password@' .env
+                    sed -i 's@^#JIGASI_SIP_TRANSPORT=.*$@JIGASI_SIP_TRANSPORT=jigasi_sip_transport@' .env
+                    sed -i 's@^#JIGASI_SIP_PORT=.*$@JIGASI_SIP_PORT=jigasi_sip_port@' .env
                     docker-compose -f ~/docker-compose.yml -f ~/jigasi.yml up -d
                   else
                     docker-compose -f ~/docker-compose.yml up -d
