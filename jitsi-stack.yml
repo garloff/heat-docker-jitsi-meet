@@ -247,9 +247,21 @@ resources:
                   docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register jitsi_user meet.jitsi jitsi_password
                   # Restart web container to make SSL/height changes effective
                   docker restart root_web_1
-                  # Tweak jigasi default room
-                  if test -n "jigasi_default_room" -a -n "$JIGASI_SIP_URI"; then
-                    echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room" >> ~/.jitsi-meet-cfg/jigasi/sip-communicator.properties
+                  if test -n "$JIGASI_SIP_URI"; then
+                    # Tweak jigasi default room
+                    PROP=~/.jitsi-meet-cfg/jigasi/sip-communicator.properties
+                    if test -n "jigasi_default_room"; then
+                      echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room@muc.meet.jitsi" >> $PROP
+                    fi
+                    # enable GSM
+                    sed -i 's@#net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=720' $PROP
+                    # avoid immediate call back
+                    echo "net.java.sip.communicator.impl.protocol.sip.SKIP_REINVITE_ON_FOCUS_CHANGE_PROP=true" >> $PROP
+                    # This is needed for sipgate, no more according to my testing
+                    echo "org.jitsi.impl.neomedia.transform.csrc.CsrcTransformEngine.DISCARD_CONTRIBUTING_SOURCES=true" >> $PROP
+                    # Wait 7mins for room opening
+                    echo "org.jitsi.jigasi.JVB_INVITE_TIMEOUT=420000" >> $PROP
+                    # And restart jigasi container
                     docker restart root_jigasi_1
                   fi
                   # Signal completion
