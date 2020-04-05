@@ -42,6 +42,10 @@ parameters:
     type: number
     default: 8443
 
+  timezone:
+    type: string
+    default: Europe/Amsterdam
+
   letsenc_domain:
     type: string
     default: ""
@@ -51,6 +55,11 @@ parameters:
   letsenc_mail:
     type: string
     default: ""
+
+  # Set to 80 if you use letsenc and don't redirect from 80
+  letsenc_http_port:
+    type: number
+    default: 8000
 
   public_url:
     type: string
@@ -155,8 +164,10 @@ resources:
                   public_domain: {get_param: public_domain}
                   public_port: {get_param: public_port}
                   public_url: {get_param: public_url}
+                  timezone: {get_param: timezone}
                   letsenc_mail: {get_param: letsenc_mail}
                   letsenc_domain: {get_param: letsenc_domain}
+                  letsenc_http_port: {get_param: letsenc_http_port}
                   tweak_ideal_height: {get_param: tweak_ideal_height}
                   tweak_channelLastN: {get_param: tweak_channelLastN}
                   jigasi_sip_uri: {get_param: jigasi_sip_uri}
@@ -192,7 +203,7 @@ resources:
                   sed -i 's/passw0rd/p@33W0rd/g' .env
                   PUBLIC_URL="public_url"
                   if test -z "$PUBLIC_URL"; then PUBLIC_URL="https://public_domain:public_port/"; fi
-                  sed -i "s@^#PUBLIC_URL=.*\$@PUBLIC_URL=$PUBLIC_URL/@" .env
+                  sed -i "s@^#PUBLIC_URL=.*\$@PUBLIC_URL=$PUBLIC_URL@" .env
                   IP=$(ip addr show eth0 | grep 'inet ' | sed 's@^ *inet \([0-9\.]*\)/\([0-9]*\) .*$@\1@')
                   sed -i "s@^#DOCKER_HOST_ADDRESS=.*\$@DOCKER_HOST_ADDRESS=$IP@" .env
                   if test -n "letsenc_mail"; then
@@ -200,7 +211,11 @@ resources:
                     LETSENC_DOM="letsenc_domain"
                     if test -z "$LETSENC_DOM"; then LETSENC_DOM="public_domain"; fi
                     sed -i "s@^#LETSENCRYPT_DOMAIN=.*\$@LETSENCRYPT_DOMAIN=$LETSENC_DOM@" .env
+                    sed -i 's@^#ENABLE_LETSENCRYPT=1@ENABLE_LETSENCRYPT=1@' .env
                   fi
+                  sed -i 's@HTTP_PORT=.*$@HTTP_PORT=letsenc_http_port@' .env
+                  sed -i 's@HTTPS_PORT=.*$@HTTPS_PORT=public_port@' .env
+                  sed -i 's@TZ=.*$@TZ=timezone@' .env
                   #sed -i 's@^#ETHERPAD_URL_BASE@ETHERPAD_URL_BASE@' .env
                   sed -i 's@^#ENABLE_AUTH@ENABLE_AUTH@' .env
                   sed -i 's@^#ENABLE_GUESTS@ENABLE_GUESTS@' .env
@@ -314,11 +329,11 @@ resources:
           protocol: tcp
           port_range_min: 22
           port_range_max: 22
-          # Port 80 needed for letsenc acme challenge
+          # Port 8000/80 (letsenc_http_port) needed for letsenc acme challenge
         - remote_ip_prefix: 0.0.0.0/0
           protocol: tcp
-          port_range_min: 80
-          port_range_max: 80
+          port_range_min: {get_param: letsenc_http_port}
+          port_range_max: {get_param: letsenc_http_port}
         - remote_ip_prefix: 0.0.0.0/0
           protocol: icmp
           # Harvester
