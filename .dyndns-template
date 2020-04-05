@@ -4,5 +4,6 @@
 DUSER="DDNS_USERNAME"
 DPASS="DDNS_PASSWORD"
 DURL="https://$DUSER:$DPASS@MY.REGISTRAR.COM/nic/update?hostname=$PUB_DOM&myip=$JITSI_ADDRESS"
-curl -k "$DURL"
+# echo "Debug: curl -k --user \"$DUSER:SECRET\" \"$DURL\""
+curl -k --user "$DUSER:$DPASS" "$DURL"
 unset DURL DPASS DUSER
