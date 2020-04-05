@@ -65,6 +65,41 @@ parameters:
     type: number
     default: -1
 
+  # Fill these vars if you want to set up a bridge to SIP
+  jigasi_sip_uri:
+    type: string
+    default: ""
+
+  jigasi_sip_server:
+    type: string
+    default: ""
+    # will be extracted from sip_uri if empty
+
+  jigasi_sip_password:
+    type: string
+    default: ""
+
+  jigasi_sip_transport:
+    type: string
+    default: UDP
+
+  jigasi_sip_port:
+    type: number
+    default: 5060
+
+  jigasi_port_min:
+    type: number
+    default: 20000
+
+  jigasi_port_max:
+    type: number
+    default: 20015
+    # Upstream default is 20050
+
+  # Default room for incoming calls
+  jigasi_default_room:
+    type: string
+    default: ""
 
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
@@ -124,6 +159,14 @@ resources:
                   letsenc_domain: {get_param: letsenc_domain}
                   tweak_ideal_height: {get_param: tweak_ideal_height}
                   tweak_channelLastN: {get_param: tweak_channelLastN}
+                  jigasi_sip_uri: {get_param: jigasi_sip_uri}
+                  jigasi_sip_server: {get_param: jigasi_sip_server}
+                  jigasi_sip_password: {get_param: jigasi_sip_password}
+                  jigasi_sip_transport: {get_param: jigasi_sip_transport}
+                  jigasi_sip_port: {get_param: jigasi_sip_port}
+                  jigasi_port_min: {get_param: jigasi_port_min}
+                  jigasi_port_max: {get_param: jigasi_port_max}
+                  jigasi_default_room: {get_param: jigasi_default_room}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -134,16 +177,17 @@ resources:
                   sysctl -w net.ipv4.ip_forward=1
                   systemctl enable docker
                   systemctl restart docker
-                  mkdir -p ~/.jitsi-meet-cfg/{web/letsencrypt,transcripts,prosody,jicofo,jvb}
-                  mkdir -p ~/.jitsi-meet-cfg/web/nginx
+                  mkdir -p ~/.jitsi-meet-cfg/{web/letsencrypt,web/nginx,transcripts,prosody,jicofo,jvb,jigasi/log}
+                  chown 999:1000 ~/.jitsi-meet-cfg/jigasi/log
                   # Generate Diffie-Hellmann parameters for SSL
                   openssl dhparam -out ~/.jitsi-meet-cfg/web/nginx/dhparams.pem 2048 &
                   git clone https://github.com/jitsi/docker-jitsi-meet
                   cd docker-jitsi-meet
                   make
-                  cp -p docker-compose.yml etherpad.yml ~
+                  cp -p docker-compose.yml etherpad.yml jigasi.yml ~
                   cp -p env.example ~/.env
                   cd ..
+                  chmod 0600 .env
                   # This is only used internally
                   sed -i 's/passw0rd/p@33W0rd/g' .env
                   PUBLIC_URL="public_url"
@@ -161,8 +205,23 @@ resources:
                   sed -i 's@^#ENABLE_AUTH@ENABLE_AUTH@' .env
                   sed -i 's@^#ENABLE_GUESTS@ENABLE_GUESTS@' .env
                   sed -i 's@^#AUTH_TYPE=@AUTH_TYPE=@' .env
-                  #docker-compose -f ~/docker-compose.yml -f ~/etherpad.yml up -d
-                  docker-compose -f ~/docker-compose.yml up -d
+                  # JIGASI
+                  JIGASI_SIP_URI="jigasi_sip_uri"
+                  if test -n "$JIGASI_SIP_URI"; then
+                    JIGASI_SIP_SERVER="jigasi_sip_server"
+                    if test -z "$JIGASI_SIP_SERVER"; then JIGASI_SIP_SERVER="${JIGASI_SIP_URI##*@}"; fi
+                    sed -i "s/^#JIGASI_SIP_URI=.*\$/JIGASI_SIP_URI=$JIGASI_SIP_URI/" .env
+                    sed -i "s/^#JIGASI_SIP_SERVER=.*\$/JIGASI_SIP_SERVER=$JIGASI_SIP_SERVER/" .env
+                    sed -i 's@^#JIGASI_SIP_PASSWORD=.*$@JIGASI_SIP_PASSWORD=jigasi_sip_password@' .env
+                    sed -i 's@^#JIGASI_SIP_TRANSPORT=.*$@JIGASI_SIP_TRANSPORT=jigasi_sip_transport@' .env
+                    sed -i 's@^#JIGASI_SIP_PORT=.*$@JIGASI_SIP_PORT=jigasi_sip_port@' .env
+                    sed -i 's@^JIGASI_PORT_MIN=.*$@JIGASI_PORT_MIN=jigasi_port_min@' .env
+                    sed -i 's@^JIGASI_PORT_MAX=.*$@JIGASI_PORT_MAX=jigasi_port_max@' .env
+                    docker-compose -f ~/docker-compose.yml -f ~/jigasi.yml up -d
+                  else
+                    docker-compose -f ~/docker-compose.yml up -d
+                  fi
+                  #docker-compose -f ~/docker-compose.yml $START_JIGASI -f ~/etherpad.yml up -d
                   # Only if not using LETSENCRYPT
                   if test -z "letsenc_mail"; then
                     cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
@@ -188,20 +247,50 @@ resources:
                   docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register jitsi_user meet.jitsi jitsi_password
                   # Restart web container to make SSL/height changes effective
                   docker restart root_web_1
-                  # TODO: 
-                  # Update DNS entry for garloff6.de
+                  if test -n "$JIGASI_SIP_URI"; then
+                    # Tweak jigasi default room
+                    PROP=~/.jitsi-meet-cfg/jigasi/sip-communicator.properties
+                    echo "## Options added by run.sh script from heat-docker-jitsi-meet" >> $PROP
+                    if test -n "jigasi_default_room"; then
+                      echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room@muc.meet.jitsi" >> $PROP
+                    fi
+                    # enable GSM, Speex, SILK (better compat)
+                    sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=710' $PROP
+                    #sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/32000=950' $PROP
+                    #sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/24000=900' $PROP
+                    #sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/16000=850' $PROP
+                    #sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.Speex/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.Speex/16000=20' $PROP
+                    #sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.SILK/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.SILK/16000=15' $PROP
+                    # avoid immediate call back
+                    echo "net.java.sip.communicator.impl.protocol.sip.SKIP_REINVITE_ON_FOCUS_CHANGE_PROP=true" >> $PROP
+                    # This is needed for sipgate, no more according to my testing
+                    echo "org.jitsi.impl.neomedia.transform.csrc.CsrcTransformEngine.DISCARD_CONTRIBUTING_SOURCES=true" >> $PROP
+                    # Wait 7mins for room opening
+                    echo "org.jitsi.jigasi.JVB_INVITE_TIMEOUT=420000" >> $PROP
+                    # And restart jigasi container
+                    docker restart root_jigasi_1
+                  fi
+                  # Signal completion
                   wc_notify --data-binary '{"status": "SUCCESS"}'
 
             path: /root/run.sh
             permissions: 0700
-          - content: |
-              #!/bin/bash
-              export USER=root
-              export USERNAME=$USER
-              export HOME=/$USER
-              cd ~
-              #docker-compose -f ~/docker-compose.yml -f ~/etherpad.yml down
-              docker-compose -f ~/docker-compose.yml down
+          - content:
+              str_replace:
+                params:
+                  jigasi_sip_uri: {get_param: jigasi_sip_uri}
+                template: |
+                  #!/bin/bash
+                  export USER=root
+                  export USERNAME=$USER
+                  export HOME=/$USER
+                  cd ~
+                  #docker-compose -f ~/docker-compose.yml -f ~/etherpad.yml down
+                  if test -n "jigasi_sip_uri"; then
+                    docker-compose -f ~/docker-compose.yml -f ~/jigasi.yml down
+                  else
+                    docker-compose -f ~/docker-compose.yml down
+                  fi
             path: /root/down.sh
             permissions: 0750
 
@@ -220,25 +309,38 @@ resources:
     properties:
       name: {get_param: "OS::stack_name"}
       rules:
+          # admin access
         - remote_ip_prefix: 0.0.0.0/0
           protocol: tcp
           port_range_min: 22
           port_range_max: 22
-          # Port 80 needed for letsenc acme challenge?
+          # Port 80 needed for letsenc acme challenge
         - remote_ip_prefix: 0.0.0.0/0
           protocol: tcp
           port_range_min: 80
           port_range_max: 80
         - remote_ip_prefix: 0.0.0.0/0
           protocol: icmp
+          # Harvester
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: tcp
+          port_range_min: 4443
+          port_range_max: 4443
+          # The Web frontend
         - remote_ip_prefix: 0.0.0.0/0
           protocol: tcp
           port_range_min: {get_param: public_port}
           port_range_max: {get_param: public_port}
+          # Jitsi Video Bridge
         - remote_ip_prefix: 0.0.0.0/0
           protocol: udp
           port_range_min: 10000
           port_range_max: 10010
+          # SIP
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: udp
+          port_range_min: {get_param: jigasi_port_min}
+          port_range_max: {get_param: jigasi_port_max}
 
   ############
   # Networks #
