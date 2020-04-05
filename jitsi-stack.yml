@@ -255,7 +255,7 @@ resources:
                       echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room@muc.meet.jitsi" >> $PROP
                     fi
                     # enable GSM, Speex, SILK (better compat)
-                    sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=710' $PROP
+                    sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=710@' $PROP
                     #sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/32000=950' $PROP
                     #sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/24000=900' $PROP
                     #sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/16000=850' $PROP
