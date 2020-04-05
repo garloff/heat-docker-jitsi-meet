@@ -68,16 +68,16 @@ parameters:
   # Fill these vars if you want to set up a bridge to SIP
   jigasi_sip_uri:
     type: string
-    default:
+    default: ""
 
   jigasi_sip_server:
     type: string
-    default:
+    default: ""
     # will be extracted from sip_uri if empty
 
   jigasi_sip_password:
     type: string
-    default:
+    default: ""
 
   jigasi_sip_transport:
     type: string
@@ -99,7 +99,7 @@ parameters:
   # Default room for incoming calls
   jigasi_default_room:
     type: string
-    default:
+    default: ""
 
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
@@ -250,11 +250,17 @@ resources:
                   if test -n "$JIGASI_SIP_URI"; then
                     # Tweak jigasi default room
                     PROP=~/.jitsi-meet-cfg/jigasi/sip-communicator.properties
+                    echo "## Options added by run.sh script from heat-docker-jitsi-meet" >> $PROP
                     if test -n "jigasi_default_room"; then
                       echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room@muc.meet.jitsi" >> $PROP
                     fi
-                    # enable GSM
-                    sed -i 's@#net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=720' $PROP
+                    # enable GSM, Speex, SILK (better compat)
+                    sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=710' $PROP
+                    #sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/32000=950' $PROP
+                    #sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/24000=900' $PROP
+                    #sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/16000=850' $PROP
+                    #sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.Speex/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.Speex/16000=20' $PROP
+                    #sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.SILK/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.SILK/16000=15' $PROP
                     # avoid immediate call back
                     echo "net.java.sip.communicator.impl.protocol.sip.SKIP_REINVITE_ON_FOCUS_CHANGE_PROP=true" >> $PROP
                     # This is needed for sipgate, no more according to my testing
