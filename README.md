@@ -16,11 +16,13 @@ is what these scripts and templates solve for you.
   to ``public_domain``). The ``USERNM`` is an identifier for a specific config, as it contains
   the ``jitsi_user``, I suggest to tie its naming to it.
   You can override ``public_url``, it will otherwise default to ``https://<public_domain>:<public_port>/``.
+  You can override the ``timezone`` also.
   Protect this file, as it will contain the ``jitsi_password``.
 
 * If you don't use Let's Encrypt, you need to provide valid SSL certificates in ``cert-USERNM.crt`` 
   and ``cert-USERNM.key`` for https to work. Protect ``cert.key``. If you do use Let's Encrypt, you
-  don't need them. Note: I have not yet tested the automatic key generation via Let's Encrypt yet ...
+  don't need them. Unless you do some redirection to forward port 80 to 8000, you will need to change
+  the ``letenc_http_port`` setting to 80 to make the acme-challenge succeed. 
 
 * You need to also define ``image_jitsi``, ``flavor_jitsi``, ``availability_zone`` and ``public``
   (the network from which to allocate public floating IPs from) to match your cloud.
