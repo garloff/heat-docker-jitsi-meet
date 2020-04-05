@@ -6,6 +6,9 @@ parameter_defaults:
   jitsi_password: JITSI_PASSWORD
   public_domain: DOMAIN_FOR_JITSI
   public_port: PORT_FOR_JITSI
+  # Optional
   #letsenc_mail: MAIL_FOR_LETSENCRYPT
   #letsenc_domain: DOMAIN_FOR_LETSENCRYPT
+  #jigasi_sip_uri: username@registrar
+  #jigasi_sip_password: sippasswd
 
