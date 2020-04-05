@@ -26,13 +26,14 @@ is what these scripts and templates solve for you.
   (the network from which to allocate public floating IPs from) to match your cloud.
   The defaults are working on CityCloud, OTC specific changes are commented out.
 
-* Optionally set up a file ``.dyndns`` which is sourced (called).
+* Optionally set up a file ``.dyndns-USERNM`` which is sourced (called).
   This can be used to do do a call to register your public IP address (in ``JITSI_ADDRESS``)
   with a DynDNS provider or designate or whatever mechanism you want to use to create a
   DNS entry for your newly acquired floating IP address. The script also gets the environment
   variable ``PUB_DOM`` containing the public domain name.
   (For compatibility reasons: If the script sets a ``DURL`` variable, it will be used in a curl
-  call from the main script.)
+  call from the main script. Also, if no ``.dyndns-USERNM`` file exists, the script looks for
+  ``.dyndns``.)
 
 * Optionally, you can use ``tweak_ideal_height`` to set a lower default resolution than 720p.
   You can try ``540``, ``480`` or ``360`` if you have many participants with limited bandwidth (or 

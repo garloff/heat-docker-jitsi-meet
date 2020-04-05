@@ -1,0 +1,8 @@
+# Copy this to .dyndns-USERNM and adjust -- it will be sourced as soon as the public
+# IP is known. It should be used to update the public DNS record for $PUB_DOMAIN
+# to point to the IP address $JITSI_ADDRESS.
+DUSER="DDNS_USERNAME"
+DPASS="DDNS_PASSWORD"
+DURL="https://$DUSER:$DPASS@MY.REGISTRAR.COM/nic/update?hostname=$PUB_DOM&myip=$JITSI_ADDRESS"
+curl -k "$DURL"
+unset DURL DPASS DUSER
