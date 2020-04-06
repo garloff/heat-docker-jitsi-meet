@@ -111,14 +111,14 @@ for more info.
 
 * Support pre-allocated floating IP address to allow for pseudo-static DNS setup.
 
-* Test the Let's Encrypt integration.
-
 * Prepare for other more generic images.
 
 * Allow tweaking internal domain name which is currently defaulting to meet.jitsi.
 
 * I have a script that sets up traffic shaping with HTB which might be useful. Adjust it,
   test it and integrate if it turns out to be helpful.
+
+* Harvest LetsEnc certificate for reuse, but watch expiry.
 
 Contributions (ideally as Pull Requests) are welcome!
 

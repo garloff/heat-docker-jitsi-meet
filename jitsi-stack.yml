@@ -241,7 +241,15 @@ resources:
                   if test -z "letsenc_mail"; then
                     cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
                     cp -p cert.key ~/.jitsi-meet-cfg/web/keys/cert.key
+                  else
+                    # Wait up to two mins for letsenc certificate
+                    declare -i ctr=0
+                    while test ! -e ~/.jitsi-meet-cfg/web/config.js -a $ctr -le 120; do
+                      sleep 1
+                      let ctr+=1
+                    done
                   fi
+                  sleep 1
                   if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
                      sed -i "s@^\(.*ideal:\)[ 0-9]*@\1 tweak_ideal_height@" ~/.jitsi-meet-cfg/web/config.js
                      sed -i "s@^\(.*min:\)[ 0-9]*@\1 180@" ~/.jitsi-meet-cfg/web/config.js
