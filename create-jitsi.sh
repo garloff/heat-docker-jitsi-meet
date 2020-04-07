@@ -32,88 +32,92 @@
 # License: CC-BY-SA 3.0
 #cd ~
 # Setup openstack environment
+if test ! -r .ostackrc.JITSI; then echo "Create .ostackrc.JITSI to configure your env for OpenStack access"; exit 1; fi
 source .ostackrc.JITSI
-# We need user settings in jitsi-user-$1.yml
-if test -z "$1" -o ! -r "jitsi-user-$1.yml"; then echo "Usage: Pass USER (jitsi-user-USER.yml needs to exist)"; exit 1; fi
+# User might have passed not just USERNM but template filename
+if test -r "$1"; then USERNM=${1%.yml}; USERNM=${USERNM##*-user-}; else USERNM=$1; fi
+# We need user settings in jitsi-user-$USERNM.yml
+if test -z "$USERNM" -o ! -r "jitsi-user-$USERNM.yml"; then echo "Usage: create-jitsi.sh USER (jitsi-user-USER.yml needs to exist)"; exit 1; fi
 START=$(date +%s)
 date
 # If we interrupted, let's not recreate the stack, but just track progress
-STATUS=$(openstack stack show jitsi-$1 -f value -c stack_status 2>/dev/null)
+STATUS=$(openstack stack show jitsi-$USERNM -f value -c stack_status 2>/dev/null)
 if test -z "$STATUS"; then
   # Copy config specific cert files
-  if test -r cert-$1.crt; then
-    cp -p cert-$1.crt cert.crt
-    cp -p cert-$1.key cert.key
+  if test -r cert-$USERNM.crt; then
+    cp -p cert-$USERNM.crt cert.crt
+    cp -p cert-$USERNM.key cert.key
     openssl x509 -in cert.crt -noout -text | grep '\(DNS:\|CN\|Issuer:\|Not After\)'
   elif test ! -r cert.crt; then
     # Detect LETSENCRYPT usage
-    if grep '^ *letsenc_mail:' jitsi-user-$1.yml >/dev/null 2>&1; then
+    if grep '^ *letsenc_mail:' jitsi-user-$USERNM.yml >/dev/null 2>&1; then
       # We are using LetsEncrypt, empty cert files will do
       touch cert.crt
       touch cert.key
       chmod 0600 cert.key
     else
-      echo "Need to provide cert-$1.crt and cert-$1.key."
+      echo "Need to provide cert-$USERNM.crt and cert-$USERNM.key."
       exit 3
     fi
   else
     openssl x509 -in cert.crt -noout -text | grep '\(DNS:\|CN\|Issuer:\|Not After\)'
   fi
-  openstack stack create --timeout 21 -e jitsi-user-$1.yml -t jitsi-stack.yml jitsi-$1 || exit 2
+  openstack stack create --timeout 21 -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM || exit 2
   sleep 60
 else
   echo "$STATUS"
 fi
 # We are not waiting for completion, let's rather use the time to watch and already set
 # the public IP address, as it takes some time to propagate through DNS
-JITSI_ADDRESS=$(openstack stack output show jitsi-$1 jitsi_address -f value -c output_value)
+JITSI_ADDRESS=$(openstack stack output show jitsi-$USERNM jitsi_address -f value -c output_value)
 while test -z "$JITSI_ADDRESS"; do 
   sleep 10
-  JITSI_ADDRESS=$(openstack stack output show jitsi-$1 jitsi_address -f value -c output_value)
+  JITSI_ADDRESS=$(openstack stack output show jitsi-$USERNM jitsi_address -f value -c output_value)
 done
 echo "Jitsi address: $JITSI_ADDRESS"
 # Optional .dyndns allows for updating Dynamic DNS server via REST call
-PUB_DOM=$(grep ' public_domain:' jitsi-user-$1.yml | sed 's/^[^:]*: *\(.*\) *$/\1/')
+PUB_DOM=$(grep ' public_domain:' jitsi-user-$USERNM.yml | sed 's/^[^:]*: *\(.*\) *$/\1/')
 unset DURL
-if test -r .dyndns-$1; then source .dyndns-$1; elif test -r .dyndns; then source .dyndns; fi
+if test -r .dyndns-$USERNM; then source .dyndns-$USERNM; elif test -r .dyndns; then source .dyndns; fi
 # Keep this for backward compatibility
 if test -n "$DURL"; then curl -k "$DURL"; fi
 # Those two could contain sensitive data, so clear again
 unset DPASS DURL
-STATUS=$(openstack stack show jitsi-$1 -f value -c stack_status)
+STATUS=$(openstack stack show jitsi-$USERNM -f value -c stack_status)
 # Save private key
-openstack stack output show jitsi-$1 private_key -c output_value -f value  > jitsi-$1.ssh
-chmod 0600 jitsi-$1.ssh
+openstack stack output show jitsi-$USERNM private_key -c output_value -f value  > jitsi-$USERNM.ssh
+chmod 0600 jitsi-$USERNM.ssh
 ssh-keygen -R $JITSI_ADDRESS -f ~/.ssh/known_hosts
+ssh-keygen -R $PUB_DOM -f ~/.ssh/known_hosts 
 # Now watch the stack evolving
 DISP=0
 while test "$STATUS" != "CREATE_FAILED" -a "$STATUS" != "CREATE_COMPLETE"; do
   # Only output new lines (yes, there is a race, but this is for debugging/info only, so ignore
-  LEN=$(ssh -o StrictHostKeyChecking=no -i jitsi-$1.ssh linux@$JITSI_ADDRESS sudo wc -l /var/log/cloud-init-output.log)
+  LEN=$(ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM.ssh linux@$JITSI_ADDRESS sudo wc -l /var/log/cloud-init-output.log)
   LEN=${LEN%% *}
   if test -n "$LEN" -a "$LEN" != "$DISP"; then
-    ssh -o StrictHostKeyChecking=no -i jitsi-$1.ssh linux@$JITSI_ADDRESS sudo tail -n $((LEN-DISP)) /var/log/cloud-init-output.log
+    ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM.ssh linux@$JITSI_ADDRESS sudo tail -n $((LEN-DISP)) /var/log/cloud-init-output.log
     DISP=$LEN
   fi
   sleep 10
-  STATUS=$(openstack stack show jitsi-$1 -f value -c stack_status)
+  STATUS=$(openstack stack show jitsi-$USERNM -f value -c stack_status)
 done
 # Now output results
 STOP=$(date +%s)
 openstack server list
-LEN=$(ssh -o StrictHostKeyChecking=no -i jitsi-$1.ssh linux@$JITSI_ADDRESS sudo wc -l /var/log/cloud-init-output.log)
+LEN=$(ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM.ssh linux@$JITSI_ADDRESS sudo wc -l /var/log/cloud-init-output.log)
 LEN=${LEN%% *}
 if test $LEN != $DISP; then
-  ssh -o StrictHostKeyChecking=no -i jitsi-$1.ssh linux@$JITSI_ADDRESS sudo tail -n $((LEN-DISP)) /var/log/cloud-init-output.log
+  ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM.ssh linux@$JITSI_ADDRESS sudo tail -n $((LEN-DISP)) /var/log/cloud-init-output.log
   DISP=$LEN
 fi
 openstack stack list
 date
-if grep ' public_url:' jitsi-user-$1.yml >/dev/null 2>/dev/null; then 
-  PUBLIC_URL=$(grep ' public_url:' jitsi-user-$1.yml | sed 's/^[^:]*: *\(.*\) *$/\1/')
+if grep ' public_url:' jitsi-user-$USERNM.yml >/dev/null 2>/dev/null; then 
+  PUBLIC_URL=$(grep ' public_url:' jitsi-user-$USERNM.yml | sed 's/^[^:]*: *\(.*\) *$/\1/')
 else
-  PUB_PRT=$(grep ' public_port:' jitsi-user-$1.yml | sed 's/^[^:]*: *\(.*\) *$/\1/')
+  PUB_PRT=$(grep ' public_port:' jitsi-user-$USERNM.yml | sed 's/^[^:]*: *\(.*\) *$/\1/')
   PUB_PRT=${PUB_PRT:-443}
   PUBLIC_URL="https://$PUB_DOM:$PUB_PRT/"
 fi
-echo "Deployed jitsi-$1 on $PUBLIC_URL ($JITSI_ADDRESS) in $((STOP-START))s"
+echo "Deployed jitsi-$USERNM on $PUBLIC_URL ($JITSI_ADDRESS) in $((STOP-START))s"
