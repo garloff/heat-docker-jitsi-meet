@@ -144,6 +144,7 @@ resources:
           - docker
           - docker-compose
           - make
+          - pwgen
           - curl
         write_files:
           - content: {get_file: cert.crt}
@@ -200,7 +201,12 @@ resources:
                   cd ..
                   chmod 0600 .env
                   # This is only used internally
-                  sed -i 's/passw0rd/p@33W0rd/g' .env
+                  #sed -i 's/passw0rd/p@33W0rd/g' .env
+                  # Set passwords
+                  for pwdnm in JICOFO_COMPONENT_SECRET JICOFO_AUTH_PASSWORD JVB_AUTH_PASSWORD JIGASI_XMPP_PASSWORD JIBRI_RECORDER_PASSWORD JIBRI_XMPP_PASSWORD; do
+                    sed -i "s/^$pwdnm=.*\$/$pwdnm=$(pwgen 16 1)/" .env
+                  done
+                  # Set input parameters
                   PUBLIC_URL="public_url"
                   if test -z "$PUBLIC_URL"; then PUBLIC_URL="https://public_domain:public_port/"; fi
                   sed -i "s@^#PUBLIC_URL=.*\$@PUBLIC_URL=$PUBLIC_URL@" .env
