@@ -10,11 +10,12 @@ STACK=$(openstack stack list -f value -c "Stack Name" -c "Stack Status" | grep j
 STACK_NM=${STACK% *}
 if test -z "$STACK_NM"; then echo "Could not find jitsi stack to delete."; exit 1; fi
 if test -n "$1"; then
-  if test "$STACK_NM" != "jitsi-$1"; then
-    echo "WARNING: Found $STACK_NM, but requesting deletion of $STACK-$1"
-    STACK_NM="jitsi-$1"
+  # User might have passed not just USERNM but template filename
+  if test -r "$1"; then USERNM=${1%.yml}; USERNM=${USERNM##*-user-}; else USERNM=$1; fi
+  if test "$STACK_NM" != "jitsi-$USERNM"; then
+    echo "WARNING: Found $STACK_NM, but requesting deletion of $STACK-$USERNM"
+    STACK_NM="jitsi-$USERNM"
   fi
-  USERNM="$1"
 else
   USERNM="${STACK_NM#jitsi-}"
 fi
