@@ -248,6 +248,9 @@ resources:
                       sleep 1
                       let ctr+=1
                     done
+                    chmod og-r ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOMAIN/privkey.pem
+                    cp -p ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOMAIN/privkey.pem cert.key
+                    cp -p ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOMAIN/fullchain.pem cert.crt
                   fi
                   sleep 1
                   if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
