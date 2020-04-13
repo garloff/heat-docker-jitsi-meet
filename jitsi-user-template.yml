@@ -7,8 +7,14 @@ parameter_defaults:
   public_domain: DOMAIN_FOR_JITSI
   public_port: PORT_FOR_JITSI
   # Optional
+  #timezone: Europe/Amsterdam
+  #UIlanguage: nl
   #letsenc_mail: MAIL_FOR_LETSENCRYPT
   #letsenc_domain: DOMAIN_FOR_LETSENCRYPT
   #jigasi_sip_uri: username@registrar
   #jigasi_sip_password: sippasswd
+  #jigasi_default_room: default room to dial into
+  #tweak_ideal_height: 540
+  #tweak_aspectRatio: 4/3
+  #tweak_channelLastN: 6
 
