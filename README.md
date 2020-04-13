@@ -16,7 +16,7 @@ is what these scripts and templates solve for you.
   to ``public_domain``). The ``USERNM`` is an identifier for a specific config, as it contains
   the ``jitsi_user``, I suggest to tie its naming to it.
   You can override ``public_url``, it will otherwise default to ``https://<public_domain>:<public_port>/``.
-  You can override the ``timezone`` also.
+  You can override the ``timezone`` and the default ``UIlanguage`` also.
   Protect this file, as it will contain the ``jitsi_password``.
 
 * If you don't use Let's Encrypt, you need to provide valid SSL certificates in ``cert-USERNM.crt`` 

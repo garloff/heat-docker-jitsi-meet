@@ -7,6 +7,8 @@ parameter_defaults:
   public_domain: DOMAIN_FOR_JITSI
   public_port: PORT_FOR_JITSI
   # Optional
+  #timezone: Europe/Amsterdam
+  #UIlanguage: nl
   #letsenc_mail: MAIL_FOR_LETSENCRYPT
   #letsenc_domain: DOMAIN_FOR_LETSENCRYPT
   #jigasi_sip_uri: username@registrar

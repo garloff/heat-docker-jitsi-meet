@@ -46,6 +46,11 @@ parameters:
     type: string
     default: Europe/Amsterdam
 
+  # Set to two-letter country code
+  UIlanguage:
+    type: string
+    default: en
+
   letsenc_domain:
     type: string
     default: ""
@@ -170,6 +175,7 @@ resources:
                   public_port: {get_param: public_port}
                   public_url: {get_param: public_url}
                   timezone: {get_param: timezone}
+                  UIlanguage: {get_param: UIlanguage}
                   letsenc_mail: {get_param: letsenc_mail}
                   letsenc_domain: {get_param: letsenc_domain}
                   letsenc_http_port: {get_param: letsenc_http_port}
@@ -284,6 +290,9 @@ resources:
                     sed -i 's@channelLastN: [-0-9]*@channelLastN: tweak_channelLastN@' ~/.jitsi-meet-cfg/web/config.js
                   fi
                   sed -i 's@^ */* *requireDisplayName:.*$@    requireDisplayName: true,@' ~/.jitsi-meet-cfg/web/config.js
+                  if test "UIlanguage" != "en"; then
+                    sed -i "s@^ */* *defaultLanguage:.*\$@    defaultLanguage: 'UIlanguage',@" ~/.jitsi-meet-cfg/web/config.js
+                  fi
                   # Deploy one user
                   docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register jitsi_user meet.jitsi jitsi_password
                   # Restart web container to make SSL/height changes effective
