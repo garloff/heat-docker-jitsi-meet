@@ -11,4 +11,8 @@ parameter_defaults:
   #letsenc_domain: DOMAIN_FOR_LETSENCRYPT
   #jigasi_sip_uri: username@registrar
   #jigasi_sip_password: sippasswd
+  #jigasi_default_room: default room to dial into
+  #tweak_ideal_height: 540
+  #tweak_aspectRatio: 4/3
+  #tweak_channelLastN: 6
 

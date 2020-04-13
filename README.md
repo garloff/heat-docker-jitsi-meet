@@ -43,12 +43,14 @@ is what these scripts and templates solve for you.
   a few more adjustments are made: the minimal height is lowered to 180, SimulCast is enabled (which
   is default anyway) and LayerSuppresion is enabled (not enabled by default). You can also use
   ``tweak_channelLastN`` allows you to limit the number of videos (from the last N speakers) to be
-  active, default is ``-1`` (unlimited).
+  active, default is ``-1`` (unlimited), and change the wanted video aspect ratio from ``16/9``
+  to ``4/3`` with ``tweak_aspectRatio`` if you like.
 
 * Optionally you can start SIP integration (jigasi) by specifying ``jigasi_sip_uri`` and
   ``jigasi_sip_password``. Optionally, you can override the defaults for ``jigasi_sip_server``
   (extracted from the uri by default), ``jigasi_sip_transport`` (UDP) and ``jigasi_sip_port`` 
-  (5060).
+  (5060). To allow dial-in from a standard line (not sending special ``X-Room-Name`` SIP headers),
+  you can specify a ``jigasi_default_room``.
 
 ## Requirements
 
