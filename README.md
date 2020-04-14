@@ -16,7 +16,7 @@ is what these scripts and templates solve for you.
   to ``public_domain``). The ``USERNM`` is an identifier for a specific config, as it contains
   the ``jitsi_user``, I suggest to tie its naming to it.
   You can override ``public_url``, it will otherwise default to ``https://<public_domain>:<public_port>/``.
-  You can override the ``timezone`` also.
+  You can override the ``timezone`` and the default ``ui_language`` also.
   Protect this file, as it will contain the ``jitsi_password``.
 
 * If you don't use Let's Encrypt, you need to provide valid SSL certificates in ``cert-USERNM.crt`` 
@@ -42,13 +42,14 @@ is what these scripts and templates solve for you.
   run into server upstream bandwidth limitations for large conferences). If you use ``tweak_ideal_height``,
   a few more adjustments are made: the minimal height is lowered to 180, SimulCast is enabled (which
   is default anyway) and LayerSuppresion is enabled (not enabled by default). You can also use
-  ``tweak_channelLastN`` allows you to limit the number of videos (from the last N speakers) to be
-  active, default is ``-1`` (unlimited).
+  ``tweak_channelLastN`` allows you to limit the number of videos streams (from the last N speakers)
+  to be active, default is ``-1`` (unlimited).
 
 * Optionally you can start SIP integration (jigasi) by specifying ``jigasi_sip_uri`` and
   ``jigasi_sip_password``. Optionally, you can override the defaults for ``jigasi_sip_server``
   (extracted from the uri by default), ``jigasi_sip_transport`` (UDP) and ``jigasi_sip_port`` 
-  (5060).
+  (5060). To allow dial-in from a standard line (not sending special ``X-Room-Name`` SIP headers),
+  you can specify a ``jigasi_default_room``.
 
 ## Requirements
 
