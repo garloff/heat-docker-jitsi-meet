@@ -310,11 +310,11 @@ resources:
                     fi
                     # enable GSM, Speex, SILK (better compat)
                     sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=690@' $PROP
-                    sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/32000=950' $PROP
+                    #sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/32000=950' $PROP
                     #sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/24000=900' $PROP
                     #sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/16000=850' $PROP
-                    sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.Speex/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.Speex/32000=25' $PROP
-                    sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.Speex/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.Speex/16000=20' $PROP
+                    sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/32000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/32000=25' $PROP
+                    sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/16000=20' $PROP
                     #sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.SILK/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.SILK/16000=15' $PROP
                     # avoid immediate call back
                     echo "net.java.sip.communicator.impl.protocol.sip.SKIP_REINVITE_ON_FOCUS_CHANGE_PROP=true" >> $PROP
