@@ -271,7 +271,7 @@ resources:
                   fi
                   sleep 1
                   if test -n "tweak_aspectRatio"; then
-                     sed -i "s@aspectRatio: [0-9/, ]*\$@aspectRatio: tweak_aspectRatio@" ~/.jitsi-meet-cfg/config.js
+                     sed -i "s@aspectRatio: [0-9/, ]*\$@aspectRatio: tweak_aspectRatio@" ~/.jitsi-meet-cfg/web/config.js
                   fi
                   if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
                      sed -i "s@^\(.*ideal:\)[ 0-9]*@\1 tweak_ideal_height@" ~/.jitsi-meet-cfg/web/config.js
