@@ -277,10 +277,11 @@ resources:
                      sed -i "s@aspectRatio: [0-9/, ]*\$@aspectRatio: tweak_aspectRatio@" $WEBCFG
                   fi
                   if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
-                     sed -i "s@^\(.*ideal:\)[ 0-9]*@\1 tweak_ideal_height@" $WEBCFG
-                     sed -i "s@^\([^/]*min:\)[ 0-9]*@\1 180@" $WEBCFG
                      # TODO: Enable the complete Constraints section
                      sed -f enable-constraints.sed -i $WEBCFG
+                     # Tweak idael height and min
+                     sed -i "s@^\(.*ideal:\)[ 0-9]*@\1 tweak_ideal_height@" $WEBCFG
+                     sed -i "s@^\([^/]*min:\)[ 0-9]*@\1 180@" $WEBCFG
                      # TODO: Ensure Simulcast is NOT disabled
                      sed -i 's@^ */* *disableSimulcast:.*$@    disableSimulcast: false,@' $WEBCFG
                      # TODO: Add tweak to enableLayerSuspension
