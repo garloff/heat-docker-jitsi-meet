@@ -1,9 +1,9 @@
 ---
 # A set of parameters
 parameter_defaults:
-  jitsi_user: JITSI_USERNAME
+  jitsi_user: JITSI_USERNAME JITSI_USERNAME2
   # Note: @meet.jitsi will be automatically assumed
-  jitsi_password: JITSI_PASSWORD
+  jitsi_password: JITSI_PASSWORD JITSI_PASSWORD2
   public_domain: DOMAIN_FOR_JITSI
   public_port: PORT_FOR_JITSI
   # Optional
@@ -13,6 +13,7 @@ parameter_defaults:
   #letsenc_domain: DOMAIN_FOR_LETSENCRYPT
   #jigasi_sip_uri: username@registrar
   #jigasi_sip_password: sippasswd
+  #jigasi_sip_port: 5060
   #jigasi_default_room: default room to dial into
   #tweak_ideal_height: 540
   #tweak_channelLastN: 6
