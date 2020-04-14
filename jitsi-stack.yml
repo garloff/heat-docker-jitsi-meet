@@ -47,7 +47,7 @@ parameters:
     default: Europe/Amsterdam
 
   # Set to two-letter country code
-  UIlanguage:
+  ui_language:
     type: string
     default: en
 
@@ -175,7 +175,7 @@ resources:
                   public_port: {get_param: public_port}
                   public_url: {get_param: public_url}
                   timezone: {get_param: timezone}
-                  UIlanguage: {get_param: UIlanguage}
+                  ui_language: {get_param: ui_language}
                   letsenc_mail: {get_param: letsenc_mail}
                   letsenc_domain: {get_param: letsenc_domain}
                   letsenc_http_port: {get_param: letsenc_http_port}
@@ -272,12 +272,13 @@ resources:
                   fi
                   sleep 1
                   cp -p $WEBCFG $WEBCFG.orig
+                  # Does no longer work in newer templates
                   if test -n "tweak_aspectRatio"; then
                      sed -i "s@aspectRatio: [0-9/, ]*\$@aspectRatio: tweak_aspectRatio@" $WEBCFG
                   fi
                   if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
                      sed -i "s@^\(.*ideal:\)[ 0-9]*@\1 tweak_ideal_height@" $WEBCFG
-                     sed -i "s@^\(.*min:\)[ 0-9]*@\1 180@" $WEBCFG
+                     sed -i "s@^\([^/]*min:\)[ 0-9]*@\1 180@" $WEBCFG
                      # TODO: Enable the complete Constraints section
                      sed -f enable-constraints.sed -i $WEBCFG
                      # TODO: Ensure Simulcast is NOT disabled
@@ -292,8 +293,8 @@ resources:
                     sed -i 's@channelLastN: [-0-9]*@channelLastN: tweak_channelLastN@' $WEBCFG
                   fi
                   sed -i 's@^ */* *requireDisplayName:.*$@    requireDisplayName: true,@' $WEBCFG
-                  if test "UIlanguage" != "en"; then
-                    sed -i "s@^ */* *defaultLanguage:.*\$@    defaultLanguage: 'UIlanguage',@" $WEBCFG
+                  if test "ui_language" != "en"; then
+                    sed -i "s@^ */* *defaultLanguage:.*\$@    defaultLanguage: 'ui_language',@" $WEBCFG
                   fi
                   # Deploy one user
                   docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register jitsi_user meet.jitsi jitsi_password
