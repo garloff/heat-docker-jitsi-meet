@@ -254,6 +254,7 @@ resources:
                     docker-compose -f ~/docker-compose.yml up -d
                   fi
                   #docker-compose -f ~/docker-compose.yml $START_JIGASI -f ~/etherpad.yml up -d
+                  WEBCFG=~/.jitsi-meet-cfg/web/config.js
                   # Only if not using LETSENCRYPT
                   if test -z "letsenc_mail"; then
                     cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
@@ -261,7 +262,7 @@ resources:
                   else
                     # Wait up to two mins for letsenc certificate
                     declare -i ctr=0
-                    while test ! -e ~/.jitsi-meet-cfg/web/config.js -a $ctr -le 120; do
+                    while test ! -e $WEBCFG -a $ctr -le 120; do
                       sleep 1
                       let ctr+=1
                     done
@@ -270,28 +271,29 @@ resources:
                     cp -p ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOM/fullchain.pem cert.crt
                   fi
                   sleep 1
+                  cp -p $WEBCFG $WEBCFG.orig
                   if test -n "tweak_aspectRatio"; then
-                     sed -i "s@aspectRatio: [0-9/, ]*\$@aspectRatio: tweak_aspectRatio@" ~/.jitsi-meet-cfg/web/config.js
+                     sed -i "s@aspectRatio: [0-9/, ]*\$@aspectRatio: tweak_aspectRatio@" $WEBCFG
                   fi
                   if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
-                     sed -i "s@^\(.*ideal:\)[ 0-9]*@\1 tweak_ideal_height@" ~/.jitsi-meet-cfg/web/config.js
-                     sed -i "s@^\(.*min:\)[ 0-9]*@\1 180@" ~/.jitsi-meet-cfg/web/config.js
+                     sed -i "s@^\(.*ideal:\)[ 0-9]*@\1 tweak_ideal_height@" $WEBCFG
+                     sed -i "s@^\(.*min:\)[ 0-9]*@\1 180@" $WEBCFG
                      # TODO: Enable the complete Constraints section
-                     sed -f enable-constraints.sed -i ~/.jitsi-meet-cfg/web/config.js
+                     sed -f enable-constraints.sed -i $WEBCFG
                      # TODO: Ensure Simulcast is NOT disabled
-                     sed -i 's@^ */* *disableSimulcast:.*$@    disableSimulcast: false,@' ~/.jitsi-meet-cfg/web/config.js
+                     sed -i 's@^ */* *disableSimulcast:.*$@    disableSimulcast: false,@' $WEBCFG
                      # TODO: Add tweak to enableLayerSuspension
-                     sed -i 's@^ */* *enableLayerSuspension:.*$@    enableLayerSuspension: true,@' ~/.jitsi-meet-cfg/web/config.js
+                     sed -i 's@^ */* *enableLayerSuspension:.*$@    enableLayerSuspension: true,@' $WEBCFG
                      # TODO: Allow SuspendVideo
                      #sed -i 's@^ */* *disableSuspendVideo:.*$@    disableSuspendVideo: false,@'  ~/.jitsi-meet-cfg/web/config.js
                      # TODO: StartVideoMuted: 10 enablement
                   fi
                   if test -n "tweak_channelLastN" -a "tweak_channelLastN" != "-1"; then
-                    sed -i 's@channelLastN: [-0-9]*@channelLastN: tweak_channelLastN@' ~/.jitsi-meet-cfg/web/config.js
+                    sed -i 's@channelLastN: [-0-9]*@channelLastN: tweak_channelLastN@' $WEBCFG
                   fi
-                  sed -i 's@^ */* *requireDisplayName:.*$@    requireDisplayName: true,@' ~/.jitsi-meet-cfg/web/config.js
+                  sed -i 's@^ */* *requireDisplayName:.*$@    requireDisplayName: true,@' $WEBCFG
                   if test "UIlanguage" != "en"; then
-                    sed -i "s@^ */* *defaultLanguage:.*\$@    defaultLanguage: 'UIlanguage',@" ~/.jitsi-meet-cfg/web/config.js
+                    sed -i "s@^ */* *defaultLanguage:.*\$@    defaultLanguage: 'UIlanguage',@" $WEBCFG
                   fi
                   # Deploy one user
                   docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register jitsi_user meet.jitsi jitsi_password
@@ -300,6 +302,7 @@ resources:
                   if test -n "$JIGASI_SIP_URI"; then
                     # Tweak jigasi default room
                     PROP=~/.jitsi-meet-cfg/jigasi/sip-communicator.properties
+                    cp -p $PROP $PROP.orig
                     echo "## Options added by run.sh script from heat-docker-jitsi-meet" >> $PROP
                     if test -n "jigasi_default_room"; then
                       echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room@muc.meet.jitsi" >> $PROP
