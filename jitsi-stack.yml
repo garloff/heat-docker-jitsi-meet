@@ -29,9 +29,11 @@ parameters:
     default: admin_external_net
     #default: ext-net
 
+  # Separate multiple names with whitespace
   jitsi_user:
     type: string
 
+  # dito
   jitsi_password:
     type: string
 
@@ -297,8 +299,11 @@ resources:
                   if test "ui_language" != "en"; then
                     sed -i "s@^ */* *defaultLanguage:.*\$@    defaultLanguage: 'ui_language',@" $WEBCFG
                   fi
-                  # Deploy one user
-                  docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register jitsi_user meet.jitsi jitsi_password
+                  # Deploy users
+                  USERS=(jitsi_user); PASSW=(jitsi_password)
+                  for idx in $(seq 0 $((${#USERS[*]}-1))); do
+                    docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register ${USERS[$idx]}  meet.jitsi ${PASSW[$idx]}
+                  done
                   # Restart web container to make SSL/height changes effective
                   docker restart root_web_1
                   if test -n "$JIGASI_SIP_URI"; then

@@ -11,7 +11,9 @@ is what these scripts and templates solve for you.
 ## Configuration
 
 * Create a ``jitsi-user-USERNM.yml`` file and set ``jitsi_user``, ``jitsi_password``, 
-  ``public_domain``, ``public_port``. If you want set ``letsenc_mail``, the deployment stack
+  ``public_domain``, ``public_port``. You can deploy multiple users by providing a
+  space-separated list of users and passwords.
+  If you want set ``letsenc_mail``, the deployment stack
   will auto-generate Let's Encrypt certs. You can set ``letsenc_domain`` then as well (defaults
   to ``public_domain``). The ``USERNM`` is an identifier for a specific config, as it contains
   the ``jitsi_user``, I suggest to tie its naming to it.
