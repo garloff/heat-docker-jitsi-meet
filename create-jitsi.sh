@@ -62,7 +62,7 @@ if test -z "$STATUS"; then
   else
     openssl x509 -in cert.crt -noout -text | grep '\(DNS:\|CN\|Issuer:\|Not After\)'
   fi
-  openstack stack create --timeout 21 -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM || exit 2
+  openstack stack create --timeout 26 -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM || exit 2
   sleep 60
 else
   echo "$STATUS"
