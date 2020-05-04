@@ -91,12 +91,23 @@ ssh-keygen -R $JITSI_ADDRESS -f ~/.ssh/known_hosts
 ssh-keygen -R $PUB_DOM -f ~/.ssh/known_hosts 
 # Now watch the stack evolving
 DISP=0
+declare -i STALL=0
 while test "$STATUS" != "CREATE_FAILED" -a "$STATUS" != "CREATE_COMPLETE"; do
   # Only output new lines (yes, there is a race, but this is for debugging/info only, so ignore
   LEN=$(ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM.ssh linux@$JITSI_ADDRESS sudo wc -l /var/log/cloud-init-output.log)
   LEN=${LEN%% *}
   if test -n "$LEN" -a "$LEN" != "$DISP"; then
     ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM.ssh linux@$JITSI_ADDRESS sudo tail -n $((LEN-DISP)) /var/log/cloud-init-output.log
+    if test $LEN == $DISP; then
+      let STALL+=1
+      if test $STALL == 10; then
+	NOW=$(date +%s)
+	echo "ALARM: Deployment $USERNM stalled since 100s (@$(($NOW-$START)))"
+	if test -x ./sendalarm.sh; then ./sendalarm.sh $USERNM $(($NOW-$START)); fi
+      fi
+    else
+      STALL=0
+    fi
     DISP=$LEN
   fi
   sleep 10
