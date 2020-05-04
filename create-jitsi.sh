@@ -57,12 +57,20 @@ if test -z "$STATUS"; then
       chmod 0600 cert.key
     else
       echo "Need to provide cert-$USERNM.crt and cert-$USERNM.key."
+      # FIXME: Call ./sendalarm.sh here as well?
       exit 3
     fi
   else
     openssl x509 -in cert.crt -noout -text | grep '\(DNS:\|CN\|Issuer:\|Not After\)'
   fi
-  openstack stack create --timeout 26 -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM || exit 2
+  openstack stack create --timeout 26 -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM
+  if test $? != 0; then
+    echo "openstack stack create FAILED for $USERNM"
+    if test -x ./sendalarm.sh; then
+      ./sendalarm.sh NOCREATE $USERNM 0
+    fi
+    exit 2
+  fi
   sleep 60
 else
   echo "$STATUS"
@@ -103,7 +111,7 @@ while test "$STATUS" != "CREATE_FAILED" -a "$STATUS" != "CREATE_COMPLETE"; do
       if test $STALL == 10; then
 	NOW=$(date +%s)
 	echo "ALARM: Deployment $USERNM stalled since 100s (@$(($NOW-$START)))"
-	if test -x ./sendalarm.sh; then ./sendalarm.sh $USERNM $(($NOW-$START)); fi
+	if test -x ./sendalarm.sh; then ./sendalarm.sh STALL $USERNM $(($NOW-$START)); fi
       fi
     else
       STALL=0
@@ -131,4 +139,7 @@ else
   PUB_PRT=${PUB_PRT:-443}
   PUBLIC_URL="https://$PUB_DOM:$PUB_PRT/"
 fi
-echo "Deployed jitsi-$USERNM on $PUBLIC_URL ($JITSI_ADDRESS) in $((STOP-START))s"
+echo "Deployed jitsi-$USERNM on $PUBLIC_URL ($JITSI_ADDRESS) in $((STOP-START))s: $STATUS"
+if test "$STATUS" == "CREATE_FAILED" -a -x ./sendalarm.sh; then
+	./sendalarm.sh FAILED $USERNM $(($STOP-$START))
+fi
