@@ -85,6 +85,13 @@ parameters:
     type: number
     default: -1
 
+  # STUN servers
+  stun_servers:
+    type: string
+    #default: stun.l.google.com:19302,stun1.l.google.com:19302,stun2.l.google.com:19302
+    #default: stun.stunprotocol.org:3478,stun.services.mozilla.com:3478
+    default: stun.hosteurope.de:3478,stun.1und1.de:3478,stun.xs4all.nl,stun.linphone.org:3478,stun.t-online.de:3478
+
   # Fill these vars if you want to set up a bridge to SIP
   jigasi_sip_uri:
     type: string
@@ -184,6 +191,7 @@ resources:
                   tweak_ideal_height: {get_param: tweak_ideal_height}
                   tweak_aspectRatio: {get_param: tweak_aspectRatio}
                   tweak_channelLastN: {get_param: tweak_channelLastN}
+                  stun_servers: {get_param: stun_servers}
                   jigasi_sip_uri: {get_param: jigasi_sip_uri}
                   jigasi_sip_server: {get_param: jigasi_sip_server}
                   jigasi_sip_password: {get_param: jigasi_sip_password}
@@ -239,6 +247,7 @@ resources:
                   sed -i 's@^#ENABLE_AUTH@ENABLE_AUTH@' .env
                   sed -i 's@^#ENABLE_GUESTS@ENABLE_GUESTS@' .env
                   sed -i 's@^#AUTH_TYPE=@AUTH_TYPE=@' .env
+                  sed -i 's@^JVB_STUN_SERVERS=.*$@JVB_STUN_SERVERS=stun_servers@' .env
                   # JIGASI
                   JIGASI_SIP_URI="jigasi_sip_uri"
                   if test -n "$JIGASI_SIP_URI"; then
