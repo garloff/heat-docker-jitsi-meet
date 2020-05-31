@@ -6,6 +6,7 @@ parameter_defaults:
   jitsi_password: JITSI_PASSWORD JITSI_PASSWORD2
   public_domain: DOMAIN_FOR_JITSI
   public_port: PORT_FOR_JITSI
+  net_jitsi: NETWORK_FOR_JITSI
   # Optional
   #timezone: Europe/Amsterdam
   #ui_language: nl

@@ -29,6 +29,11 @@ parameters:
     #OTC default: admin_external_net
     default: ext-net
 
+  net_jitsi:
+    type: string
+    constraints:
+      - custom_constraint: neutron.network
+
   # Separate multiple names with whitespace
   jitsi_user:
     type: string
@@ -216,7 +221,7 @@ resources:
                   openssl dhparam -out ~/.jitsi-meet-cfg/web/nginx/dhparams.pem 2048 &
                   git clone https://github.com/jitsi/docker-jitsi-meet
                   cd docker-jitsi-meet
-                  # We can safely ignore hanging pipstrap if we are not using letenc
+                  # We can safely ignore hanging pipstrap if we are not using letsenc
                   if test -z "letsenc_mail"; then
                     sed -i 's/certbot\-auto \-\-noninteractive/timeout 42 certbot-auto --noninteractive/' web/Dockerfile
                   fi
@@ -419,43 +424,43 @@ resources:
   # Networks #
   ############
 
-  net_jitsi:
-    type: OS::Neutron::Net
-    properties:
-      name: {get_param: "OS::stack_name"}
-
-  subnet_jitsi:
-    type: OS::Neutron::Subnet
-    properties:
-      name: {get_param: "OS::stack_name"}
-      network: {get_resource: net_jitsi}
-      cidr: 192.168.10.0/24
-      # OTC
-      #dns_nameservers: [ 100.125.4.25, 9.9.9.9 ]
-      dns_nameservers: [ 9.9.9.9, 8.8.8.8 ]
-      allocation_pools:
-        -
-          start: 192.168.10.100
-          end: 192.168.10.120
+#  net_jitsi:
+#    type: OS::Neutron::Net
+#    properties:
+#      name: {get_param: "OS::stack_name"}
+#
+#  subnet_jitsi:
+#    type: OS::Neutron::Subnet
+#    properties:
+#      name: {get_param: "OS::stack_name"}
+#      network: {get_resource: net_jitsi}
+#      cidr: 192.168.10.0/24
+#      # OTC
+#      #dns_nameservers: [ 100.125.4.25, 9.9.9.9 ]
+#      dns_nameservers: [ 9.9.9.9, 8.8.8.8 ]
+#      allocation_pools:
+#        -
+#          start: 192.168.10.100
+#          end: 192.168.10.120
 
   ##########################
   # Network infrastructure #
   ##########################
+#
+#  router:
+#    type: OS::Neutron::Router
+#    properties:
+#      name: {get_param: "OS::stack_name"}
+#      external_gateway_info:
+#        network: {get_param: public}
+#        # OTC
+#        # enable_snat: true
 
-  router:
-    type: OS::Neutron::Router
-    properties:
-      name: {get_param: "OS::stack_name"}
-      external_gateway_info:
-        network: {get_param: public}
-        # OTC
-        # enable_snat: true     
-
-  router_interface:
-    type: OS::Neutron::RouterInterface
-    properties:
-      router: {get_resource: router}
-      subnet: {get_resource: subnet_jitsi}
+#  router_interface:
+#    type: OS::Neutron::RouterInterface
+#    properties:
+#      router: {get_param: router_jitsi}
+#      subnet: {get_resource: subnet_jitsi}
 
   ###########
   # Manager #
@@ -465,15 +470,16 @@ resources:
     type: OS::Neutron::Port
     properties:
       name: {get_param: "OS::stack_name"}
-      network_id: {get_resource: net_jitsi}
-      fixed_ips:
-        - ip_address: 192.168.10.99
+#      network_id: {get_resource: net_jitsi}
+      network_id: {get_param: net_jitsi}
+#      fixed_ips:
+#        - ip_address: 192.168.10.99
       security_groups:
         - {get_resource: security_group_jitsi}
 
   jitsi_floating_ip:
     type: OS::Neutron::FloatingIP
-    depends_on: router_interface
+    #depends_on: router_interface
     properties:
       floating_network_id: {get_param: public}
       port_id: {get_resource: jitsi_port}
