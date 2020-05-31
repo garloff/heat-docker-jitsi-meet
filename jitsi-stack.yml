@@ -155,7 +155,7 @@ resources:
     type: OS::Heat::WaitCondition
     properties:
       handle: {get_resource: jitsi_wait_handle}
-      timeout: 1500
+      timeout: 1680
 
   jitsi_boot_config:
     type: OS::Heat::CloudConfig
