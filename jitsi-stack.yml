@@ -423,6 +423,9 @@ resources:
     type: OS::Neutron::Net
     properties:
       name: {get_param: "OS::stack_name"}
+      value_specs:
+        availability_zone_hints:
+          - {get_param: availability_zone}
 
   subnet_jitsi:
     type: OS::Neutron::Subnet
@@ -449,7 +452,10 @@ resources:
       external_gateway_info:
         network: {get_param: public}
         # OTC
-        # enable_snat: true     
+        # enable_snat: true
+      value_specs:
+        availability_zone_hints:
+          - {get_param: availability_zone}
 
   router_interface:
     type: OS::Neutron::RouterInterface
