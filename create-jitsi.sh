@@ -121,6 +121,9 @@ while test "$STATUS" != "CREATE_FAILED" -a "$STATUS" != "CREATE_COMPLETE"; do
   sleep 10
   STATUS=$(openstack stack show jitsi-$USERNM -f value -c stack_status)
 done
+if test "$STATUS" != "CREATE_COMPLETE"; then
+  openstack stack show jitsi-$USERNM -c stack_status_reason -f value
+fi
 # Now output results
 STOP=$(date +%s)
 openstack server list

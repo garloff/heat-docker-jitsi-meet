@@ -216,6 +216,10 @@ resources:
                   openssl dhparam -out ~/.jitsi-meet-cfg/web/nginx/dhparams.pem 2048 &
                   git clone https://github.com/jitsi/docker-jitsi-meet
                   cd docker-jitsi-meet
+                  # We can safely ignore hanging pipstrap if we are not using letenc
+                  if test -z "letsenc_mail"; then
+                    sed -i 's/certbot\-auto \-\-noninteractive/timeout 42 certbot-auto --noninteractive/' web/Dockerfile
+                  fi
                   make
                   cp -p docker-compose.yml etherpad.yml jigasi.yml ~
                   cp -p env.example ~/.env
@@ -419,6 +423,9 @@ resources:
     type: OS::Neutron::Net
     properties:
       name: {get_param: "OS::stack_name"}
+      value_specs:
+        availability_zone_hints:
+          - {get_param: availability_zone}
 
   subnet_jitsi:
     type: OS::Neutron::Subnet
@@ -445,7 +452,10 @@ resources:
       external_gateway_info:
         network: {get_param: public}
         # OTC
-        # enable_snat: true     
+        # enable_snat: true
+      value_specs:
+        availability_zone_hints:
+          - {get_param: availability_zone}
 
   router_interface:
     type: OS::Neutron::RouterInterface
