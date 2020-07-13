@@ -106,17 +106,15 @@ while test "$STATUS" != "CREATE_FAILED" -a "$STATUS" != "CREATE_COMPLETE"; do
   LEN=${LEN%% *}
   if test -n "$LEN" -a "$LEN" != "$DISP"; then
     ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM.ssh linux@$JITSI_ADDRESS sudo tail -n $((LEN-DISP)) /var/log/cloud-init-output.log
-    if test $LEN == $DISP; then
-      let STALL+=1
-      if test $STALL == 10; then
-	NOW=$(date +%s)
-	echo "ALARM: Deployment $USERNM stalled since 100s (@$(($NOW-$START)))"
-	if test -x ./sendalarm.sh; then ./sendalarm.sh STALL $USERNM $(($NOW-$START)); fi
-      fi
-    else
-      STALL=0
-    fi
+    STALL=0
     DISP=$LEN
+  else
+    let STALL+=1
+    if test $STALL == 10; then
+      NOW=$(date +%s)
+      echo "ALARM: Deployment $USERNM stalled since 100s (@$(($NOW-$START)))"
+      if test -x ./sendalarm.sh; then ./sendalarm.sh STALL $USERNM $(($NOW-$START)); fi
+    fi
   fi
   sleep 10
   STATUS=$(openstack stack show jitsi-$USERNM -f value -c stack_status)
