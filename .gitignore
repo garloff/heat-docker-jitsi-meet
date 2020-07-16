@@ -1,0 +1,6 @@
+*.ssh
+*.crt
+*.key
+jitsi-user-*.yml
+.dyndns-*
+.ostackrc.JITSI

@@ -8,7 +8,7 @@ parameters:
     type: string
     constraints:
       - custom_constraint: glance.image
-    default: openSUSE 15.1
+    default: openSUSE 15.2
 
   flavor_jitsi:
     type: string
@@ -428,6 +428,8 @@ resources:
 #    type: OS::Neutron::Net
 #    properties:
 #      name: {get_param: "OS::stack_name"}
+#        availability_zone_hints:
+#          - {get_param: availability_zone}
 #
 #  subnet_jitsi:
 #    type: OS::Neutron::Subnet
@@ -446,6 +448,7 @@ resources:
   ##########################
   # Network infrastructure #
   ##########################
+<<<<<<< HEAD
 #
 #  router:
 #    type: OS::Neutron::Router
@@ -455,6 +458,9 @@ resources:
 #        network: {get_param: public}
 #        # OTC
 #        # enable_snat: true
+#      value_specs:
+#        availability_zone_hints:
+#          - {get_param: availability_zone}
 
 #  router_interface:
 #    type: OS::Neutron::RouterInterface
