@@ -448,7 +448,6 @@ resources:
   ##########################
   # Network infrastructure #
   ##########################
-<<<<<<< HEAD
 #
 #  router:
 #    type: OS::Neutron::Router
