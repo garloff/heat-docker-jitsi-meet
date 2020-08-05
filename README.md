@@ -53,6 +53,13 @@ is what these scripts and templates solve for you.
   (5060). To allow dial-in from a standard line (not sending special ``X-Room-Name`` SIP headers),
   you can specify a ``jigasi_default_room``.
 
+* Optionally, you can drop files ``watermark-USERNM.png`` and/or ``favicon-USERNM.ico``, which
+  will be used to replace the default jitsi icons. Specifying ``jitsi_watermark_link`` will
+  change the default link from the watermark icon (top left) from ``https://jitsi.org`` to
+  a location of your desire. Note that the size of injected files is limited on many OpenStack
+  clouds -- which is why the files are gzipped (but this only helps for non-already well compressed
+  file formats, such as .ico.
+
 ## Requirements
 
 * You need to have a ``.ostackrc.JITSI`` file that sets your environment variables such to make
