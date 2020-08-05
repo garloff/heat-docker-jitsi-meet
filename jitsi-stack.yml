@@ -321,14 +321,6 @@ resources:
                   if test -n "jitsi_watermark_link"; then
                     sed -i "s@JITSI_WATERMARK_LINK: '.*'@JITSI_WATERMARK_LINK: 'jitsi_watermark_link'@" $WEBIFCFG
                   fi
-                  # Inject icon/watermark
-                  if test $(stat -c %s /root/favicon.png) -gt 0; then
-                    docker cp /root/favicon.ico root_web_1:/usr/share/jitsi-meet/images/favicon.ico
-                    docker cp /root/favicon.ico root_web_1:/usr/share/jitsi-meet/favicon.ico
-                  fi
-                  if test $(stat -c %s /root/watermark.png) -gt 0; then
-                    docker cp /root/watermark.png /usr/share/jitsi-meet/images/watermark.png
-                  fi
                   # Deploy users
                   USERS=(jitsi_user); PASSW=(jitsi_password)
                   for idx in $(seq 0 $((${#USERS[*]}-1))); do
@@ -336,6 +328,15 @@ resources:
                   done
                   # Restart web container to make SSL/height changes effective
                   docker restart root_web_1
+                  # Inject icon/watermark
+                  if test -r /root/favicon.ico -a $(stat -c %s /root/favicon.ico) -gt 0; then
+                    docker cp /root/favicon.ico root_web_1:/usr/share/jitsi-meet/images/favicon.ico
+                    docker cp /root/favicon.ico root_web_1:/usr/share/jitsi-meet/favicon.ico
+                  fi
+                  if test -r /root/watermark.png -a $(stat -c %s /root/watermark.png) -gt 0; then
+                    docker cp /root/watermark.png /usr/share/jitsi-meet/images/watermark.png
+                  fi
+                  # Dial-In
                   if test -n "$JIGASI_SIP_URI"; then
                     # Tweak jigasi default room
                     PROP=~/.jitsi-meet-cfg/jigasi/sip-communicator.properties
