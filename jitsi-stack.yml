@@ -37,6 +37,10 @@ parameters:
   jitsi_password:
     type: string
 
+  jitsi_watermark_link:
+    type: string
+    default: https://jitsi.org
+
   public_domain:
     type: string
 
@@ -180,6 +184,7 @@ resources:
                   wc_notify: {get_attr: ['jitsi_wait_handle', 'curl_cli']}
                   jitsi_user: {get_param: jitsi_user}
                   jitsi_password: {get_param: jitsi_password}
+                  jitsi_watermark_link: {get_param: jitsi_watermark_link}
                   public_domain: {get_param: public_domain}
                   public_port: {get_param: public_port}
                   public_url: {get_param: public_url}
@@ -270,6 +275,7 @@ resources:
                   fi
                   #docker-compose -f ~/docker-compose.yml $START_JIGASI -f ~/etherpad.yml up -d
                   WEBCFG=~/.jitsi-meet-cfg/web/config.js
+                  WEBIFCFG=~/.jitsi-meet-cfg/web/interface_config.js
                   # Only if not using LETSENCRYPT
                   if test -z "letsenc_mail"; then
                     cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
@@ -312,6 +318,9 @@ resources:
                   if test "ui_language" != "en"; then
                     sed -i "s@^ */* *defaultLanguage:.*\$@    defaultLanguage: 'ui_language',@" $WEBCFG
                   fi
+                  if test -n "jitsi_watermark_link"; then
+                    sed -i "s@JITSI_WATERMARK_LINK: '.*'@JITSI_WATERMARK_LINK: 'jitsi_watermark_link'@" $WEBIFCFG
+                  fi
                   # Deploy users
                   USERS=(jitsi_user); PASSW=(jitsi_password)
                   for idx in $(seq 0 $((${#USERS[*]}-1))); do
@@ -319,6 +328,15 @@ resources:
                   done
                   # Restart web container to make SSL/height changes effective
                   docker restart root_web_1
+                  # Inject icon/watermark
+                  if test -r /root/favicon.ico -a $(stat -c %s /root/favicon.ico) -gt 0; then
+                    docker cp /root/favicon.ico root_web_1:/usr/share/jitsi-meet/images/favicon.ico
+                    docker cp /root/favicon.ico root_web_1:/usr/share/jitsi-meet/favicon.ico
+                  fi
+                  if test -r /root/watermark.png -a $(stat -c %s /root/watermark.png) -gt 0; then
+                    docker cp /root/watermark.png root_web_1:/usr/share/jitsi-meet/images/watermark.png
+                  fi
+                  # Dial-In
                   if test -n "$JIGASI_SIP_URI"; then
                     # Tweak jigasi default room
                     PROP=~/.jitsi-meet-cfg/jigasi/sip-communicator.properties
@@ -366,6 +384,14 @@ resources:
                   fi
             path: /root/down.sh
             permissions: 0750
+          - encoding: gz+b64
+            content: {get_file: watermark.png.gz}
+            path: /root/watermark.png
+            permissions: 0644
+          - encoding: gz+b64
+            content: {get_file: favicon.ico.gz}
+            path: /root/favicon.ico
+            permissions: 0644
 
         runcmd:
           - "systemctl enable docker"

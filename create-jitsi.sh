@@ -63,6 +63,16 @@ if test -z "$STATUS"; then
   else
     openssl x509 -in cert.crt -noout -text | grep '\(DNS:\|CN\|Issuer:\|Not After\)'
   fi
+  if test -r watermark-$USERNM.png; then
+    gzip -c watermark-$USERNM.png > watermark.png.gz
+  else
+    touch watermark.png.gz
+  fi
+  if test -r favicon-$USERNM.ico; then
+    gzip -c favicon-$USERNM.ico > favicon.ico.gz
+  else
+    touch favicon.ico.gz
+  fi
   openstack stack create --timeout 26 -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM
   if test $? != 0; then
     echo "openstack stack create FAILED for $USERNM"
