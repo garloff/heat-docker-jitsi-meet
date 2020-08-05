@@ -334,7 +334,7 @@ resources:
                     docker cp /root/favicon.ico root_web_1:/usr/share/jitsi-meet/favicon.ico
                   fi
                   if test -r /root/watermark.png -a $(stat -c %s /root/watermark.png) -gt 0; then
-                    docker cp /root/watermark.png /usr/share/jitsi-meet/images/watermark.png
+                    docker cp /root/watermark.png root_web_1:/usr/share/jitsi-meet/images/watermark.png
                   fi
                   # Dial-In
                   if test -n "$JIGASI_SIP_URI"; then
