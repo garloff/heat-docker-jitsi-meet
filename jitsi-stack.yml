@@ -236,7 +236,7 @@ resources:
                     cp -p /root/watermark.png web/rootfs/usr/share/jitsi-meet/images/watermark.png
                   fi
                   # Copy rootfs after installing packages, so files can be overwritten
-                  sed -i 's@^COPY rootfs@#COPY rootfs@' web/Dockerfile
+                  #sed -i 's@^COPY rootfs@#COPY rootfs@' web/Dockerfile
                   sed -i "s@^\(.*rm \-rf /tmp/pkg.*$\)@\1\n\nCOPY rootfs/ /@" web/Dockerfile
                   make
                   cp -p docker-compose.yml etherpad.yml jigasi.yml ~
