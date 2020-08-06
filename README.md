@@ -110,6 +110,11 @@ becoming root and using
 ``docker exec -it root_prosody_1 prosodyctl --config /config/prosody.cfg.lua adduser USERNM2@meet.jitsi``
 to deploy another authenticated user that can create rooms.
 
+However, it is not recommended to login to container and do changes -- they are not persistent and
+won't survive a container restart. So rather use the ``jitsi-user-USERNM.yml`` configuration
+to have several users. In my setup, I redeploy the container every night to have fresh state and
+current software.
+
 Refer to the docker-jitsi-meet(https://github.com/jitsi/docker-jitsi-meet/) documentation
 for more info.
 
