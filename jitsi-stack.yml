@@ -221,6 +221,8 @@ resources:
                   openssl dhparam -out ~/.jitsi-meet-cfg/web/nginx/dhparams.pem 2048 &
                   git clone https://github.com/jitsi/docker-jitsi-meet
                   cd docker-jitsi-meet
+                  # XMPP_WEBSOCKET just breaks it, so revert for now
+                  git show 465816b4ebf2babf1b9e6daf007301c1fd17552e d747bfbe6b72dd86789f61a97372b94c2c19677f | patch -p1 -R
                   # We can safely ignore hanging pipstrap if we are not using letsenc
                   if test -z "letsenc_mail"; then
                     sed -i 's/\(certbot\-auto \-\-noninteractive.*$\)/timeout 21 \1 || true/' web/Dockerfile
@@ -245,10 +247,8 @@ resources:
                   chmod 0600 .env
                   # This is only used internally
                   #sed -i 's/passw0rd/p@33W0rd/g' .env
-                  # Set passwords
-                  for pwdnm in JICOFO_COMPONENT_SECRET JICOFO_AUTH_PASSWORD JVB_AUTH_PASSWORD JIGASI_XMPP_PASSWORD JIBRI_RECORDER_PASSWORD JIBRI_XMPP_PASSWORD; do
-                    sed -i "s/^$pwdnm=.*\$/$pwdnm=$(pwgen 16 1)/" .env
-                  done
+                  cp -p docker-jitsi-meet/gen-passwords.sh .
+                  ./gen-passwords.sh
                   # Set input parameters
                   PUBLIC_URL="public_url"
                   if test -z "$PUBLIC_URL"; then PUBLIC_URL="https://public_domain:public_port/"; fi
