@@ -86,10 +86,16 @@ parameters:
     type: number
     default: 720
 
+  # If you want to enable FHD, set this to 1080
+  tweak_max_height:
+    type: number
+    default: 0
+
   tweak_aspectRatio:
     type: string
     default: 16/9
 
+  # You can only show last 12 speakers or so if you want
   tweak_channelLastN:
     type: number
     default: -1
@@ -200,6 +206,7 @@ resources:
                   letsenc_domain: {get_param: letsenc_domain}
                   letsenc_http_port: {get_param: letsenc_http_port}
                   tweak_ideal_height: {get_param: tweak_ideal_height}
+                  tweak_max_height: {get_param: tweak_max_height}
                   tweak_aspectRatio: {get_param: tweak_aspectRatio}
                   tweak_channelLastN: {get_param: tweak_channelLastN}
                   stun_servers: {get_param: stun_servers}
@@ -217,14 +224,14 @@ resources:
                   export USERNAME=$USER
                   export HOME=/$USER
                   cd ~
-                  systemctl stop SuSEfirewall2
-                  sysctl -w net.ipv4.ip_forward=1
-                  systemctl enable docker
-                  systemctl restart docker
                   mkdir -p ~/.jitsi-meet-cfg/{web/letsencrypt,web/nginx,transcripts,prosody,jicofo,jvb,jigasi/log}
                   chown 999:1000 ~/.jitsi-meet-cfg/jigasi/log
                   # Generate Diffie-Hellmann parameters for SSL
                   openssl dhparam -out ~/.jitsi-meet-cfg/web/nginx/dhparams.pem 2048 &
+                  systemctl stop SuSEfirewall2
+                  sysctl -w net.ipv4.ip_forward=1
+                  systemctl enable docker
+                  systemctl restart docker
                   git clone https://github.com/jitsi/docker-jitsi-meet
                   cd docker-jitsi-meet
                   git checkout jitsi_version
@@ -251,6 +258,7 @@ resources:
                   cp -p docker-compose.yml etherpad.yml jigasi.yml ~
                   cp -p env.example ~/.env
                   cd ..
+                  for nm in *.yml; do sed -i 's@^\( *image: jitsi/[^:]*\):.*$@\1:latest@g' $nm; done
                   chmod 0600 .env
                   # This is only used internally
                   #sed -i 's/passw0rd/p@33W0rd/g' .env
@@ -296,17 +304,17 @@ resources:
                   #docker-compose -f ~/docker-compose.yml $START_JIGASI -f ~/etherpad.yml up -d
                   WEBCFG=~/.jitsi-meet-cfg/web/config.js
                   WEBIFCFG=~/.jitsi-meet-cfg/web/interface_config.js
+                  # Wait up to two mins for web config (due to wait for letsenc certificate)
+                  declare -i ctr=0
+                  while test ! -e $WEBCFG -a $ctr -le 120; do
+                    sleep 1
+                    let ctr+=1
+                  done
                   # Only if not using LETSENCRYPT
                   if test -z "letsenc_mail"; then
                     cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
                     cp -p cert.key ~/.jitsi-meet-cfg/web/keys/cert.key
                   else
-                    # Wait up to two mins for letsenc certificate
-                    declare -i ctr=0
-                    while test ! -e $WEBCFG -a $ctr -le 120; do
-                      sleep 1
-                      let ctr+=1
-                    done
                     chmod og-r ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOM/privkey.pem
                     cp -p ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOM/privkey.pem cert.key
                     cp -p ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOM/fullchain.pem cert.crt
@@ -314,15 +322,22 @@ resources:
                   sleep 1
                   cp -p $WEBCFG $WEBCFG.orig
                   # Does no longer work in newer templates
+                  ASPECT="16/9"
                   if test -n "tweak_aspectRatio"; then
                      sed -i "s@aspectRatio: [0-9/, ]*\$@aspectRatio: tweak_aspectRatio@" $WEBCFG
+                     ASPECT="tweak_aspectRatio"
                   fi
                   if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
                      # TODO: Enable the complete Constraints section
                      sed -f enable-constraints.sed -i $WEBCFG
                      # Tweak idael height and min
                      sed -i "s@^\(.*ideal:\)[ 0-9]*@\1 tweak_ideal_height@" $WEBCFG
-                     sed -i "s@^\([^/]*min:\)[ 0-9]*@\1 180@" $WEBCFG
+                     sed -i "s@^\([^/]*min:\)[ 0-9]*\$@\1 180@" $WEBCFG
+                     # New config style
+                     WIDTH=$((tweak_ideal_height*$ASPECT))
+                     sed -i 's@^\(config\.resolution =\).*$@\1 tweak_ideal_height;@' $WEBCFG
+                     sed -i "s@^\(config\.constraints\.video\.height = { ideal:\) [0-9]*,@\1 tweak_ideal_height,@" $WEBCFG
+                     sed -i "s@^\(config\.constraints\.video\.width = { ideal:\) [0-9]*,@\1 $WIDTH,@" $WEBCFG
                      # TODO: Ensure Simulcast is NOT disabled
                      sed -i 's@^ */* *disableSimulcast:.*$@    disableSimulcast: false,@' $WEBCFG
                      # TODO: Add tweak to enableLayerSuspension
@@ -331,10 +346,17 @@ resources:
                      #sed -i 's@^ */* *disableSuspendVideo:.*$@    disableSuspendVideo: false,@'  ~/.jitsi-meet-cfg/web/config.js
                      # TODO: StartVideoMuted: 10 enablement
                   fi
+                  if test -n "tweak_max_height" -a "tweak_max_height" != "0"; then
+                     sed -i "s@^\([^/]*max:\)[ 0-9]*,\$@\1 tweak_max_height,@" $WEBCFG
+                     WIDTH=$((tweak_max_height*$ASPECT))
+                     sed -i "s@^\(config\.constraints\.video\.height = { ideal: [0-9]*, max:\) [0-9]*,@\1 tweak_max_height,@" $WEBCFG
+                     sed -i "s@^\(config\.constraints\.video\.width = { ideal: [0-9]*, max:\) [0-9]*,@\1 $WIDTH,@" $WEBCFG
+                  fi
                   if test -n "tweak_channelLastN" -a "tweak_channelLastN" != "-1"; then
                     sed -i 's@channelLastN: [-0-9]*@channelLastN: tweak_channelLastN@' $WEBCFG
                   fi
                   sed -i 's@^ */* *requireDisplayName:.*$@    requireDisplayName: true,@' $WEBCFG
+                  sed -i 's@^config\.requireDisplayName = .*$@config.requireDisplayName = true;@' $WEBCFG
                   if test "ui_language" != "en"; then
                     sed -i "s@^ */* *defaultLanguage:.*\$@    defaultLanguage: 'ui_language',@" $WEBCFG
                   fi
@@ -346,8 +368,10 @@ resources:
                   for idx in $(seq 0 $((${#USERS[*]}-1))); do
                     docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register ${USERS[$idx]}  meet.jitsi ${PASSW[$idx]}
                   done
-                  # Restart web container to make SSL/height changes effective
-                  docker restart root_web_1
+                  # Restart nginx in web container to make SSL/height changes effective
+                  #docker restart root_web_1
+                  NGINX=$(ps -x | grep "nginx: master" | grep -v grep)
+                  kill ${NGINX%% *}
                   # Dial-In
                   if test -n "$JIGASI_SIP_URI"; then
                     # Tweak jigasi default room
