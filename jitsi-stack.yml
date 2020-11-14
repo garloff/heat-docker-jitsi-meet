@@ -363,6 +363,7 @@ resources:
                   if test -n "jitsi_watermark_link"; then
                     sed -i "s@JITSI_WATERMARK_LINK: '.*'@JITSI_WATERMARK_LINK: 'jitsi_watermark_link'@" $WEBIFCFG
                   fi
+                  sleep 3
                   # Deploy users
                   USERS=(jitsi_user); PASSW=(jitsi_password)
                   for idx in $(seq 0 $((${#USERS[*]}-1))); do
