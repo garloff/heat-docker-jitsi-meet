@@ -363,6 +363,7 @@ resources:
                   if test -n "jitsi_watermark_link"; then
                     sed -i "s@JITSI_WATERMARK_LINK: '.*'@JITSI_WATERMARK_LINK: 'jitsi_watermark_link'@" $WEBIFCFG
                   fi
+                  sleep 1
                   # Deploy users
                   USERS=(jitsi_user); PASSW=(jitsi_password)
                   for idx in $(seq 0 $((${#USERS[*]}-1))); do
@@ -370,8 +371,8 @@ resources:
                   done
                   # Restart nginx in web container to make SSL/height changes effective
                   #docker restart root_web_1
-                  NGINX=$(ps -x | grep "nginx: master" | grep -v grep)
-                  kill ${NGINX%% *}
+                  NGINX=$(ps -x | grep "nginx: master" | grep -v grep | awk '{ print $1; }')
+                  kill $NGINX
                   # Dial-In
                   if test -n "$JIGASI_SIP_URI"; then
                     # Tweak jigasi default room
