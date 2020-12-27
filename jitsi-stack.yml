@@ -48,7 +48,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-5142
+    default: stable-5142-4
     #default: master
 
   public_domain:
@@ -216,8 +216,8 @@ resources:
                   git clone https://github.com/jitsi/docker-jitsi-meet
                   cd docker-jitsi-meet
                   git checkout jitsi_version
-                  # XMPP_WEBSOCKET just breaks it, so revert for now
-                  #git show 465816b4ebf2babf1b9e6daf007301c1fd17552e d747bfbe6b72dd86789f61a97372b94c2c19677f | patch -p1 -R
+                  # XMPP_WEBSOCKET still breaks it, so revert for now
+                  git revert 465816b4ebf2babf1b9e6daf007301c1fd17552e
                   # We can safely ignore hanging pipstrap if we are not using letsenc
                   if test -z "letsenc_mail"; then
                     sed -i 's/\(certbot\-auto \-\-noninteractive.*$\)/timeout 21 \1 || true/' web/Dockerfile
