@@ -43,7 +43,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-5142-3
+    default: stable-5142-4
     #default: master
 
   public_domain:
