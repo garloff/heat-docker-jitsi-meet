@@ -1,0 +1,60 @@
+commit 30de7d3c309401893e7ca73965fb8fd486f8be42
+Author: Kurt Garloff <kurt@garloff.de>
+Date:   Mon Dec 28 11:04:01 2020 +0000
+
+    Revert "web,prosody: turn on XMPP WebSocket by default"
+    
+    This reverts commit 465816b4ebf2babf1b9e6daf007301c1fd17552e.
+    
+    Signed-off-by: Kurt Garloff <kurt@garloff.de>
+
+diff --git a/env.example b/env.example
+index c04292d..b2126f8 100644
+--- a/env.example
++++ b/env.example
+@@ -373,6 +373,9 @@ JIBRI_LOGS_DIR=/config/logs
+ # Provides means to disable IPv6 in environments that don't support it (get with the times, people!)
+ #ENABLE_IPV6=1
+ 
++# Enabled XMPP traffic over WebSocket (PUBLIC_URL must be defined!)
++#ENABLE_XMPP_WEBSOCKET=1
++
+ # Container restart policy
+ # Defaults to unless-stopped
+ RESTART_POLICY=unless-stopped
+diff --git a/prosody/rootfs/defaults/conf.d/jitsi-meet.cfg.lua b/prosody/rootfs/defaults/conf.d/jitsi-meet.cfg.lua
+index 4eb8f0e..ead15eb 100644
+--- a/prosody/rootfs/defaults/conf.d/jitsi-meet.cfg.lua
++++ b/prosody/rootfs/defaults/conf.d/jitsi-meet.cfg.lua
+@@ -15,7 +15,7 @@ http_default_host = "{{ .Env.XMPP_DOMAIN }}"
+ {{ $JWT_TOKEN_AUTH_MODULE := .Env.JWT_TOKEN_AUTH_MODULE | default "token_verification" }}
+ {{ $ENABLE_LOBBY := .Env.ENABLE_LOBBY | default "0" | toBool }}
+ 
+-{{ $ENABLE_XMPP_WEBSOCKET := .Env.ENABLE_XMPP_WEBSOCKET | default "1" | toBool }}
++{{ $ENABLE_XMPP_WEBSOCKET := .Env.ENABLE_XMPP_WEBSOCKET | default "0" | toBool }}
+ {{ $PUBLIC_URL := .Env.PUBLIC_URL | default "https://localhost:8443" -}}
+ 
+ {{ if and $ENABLE_AUTH (eq $AUTH_TYPE "jwt") .Env.JWT_ACCEPTED_ISSUERS }}
+diff --git a/web/rootfs/defaults/meet.conf b/web/rootfs/defaults/meet.conf
+index 4b10234..8ff0fa9 100644
+--- a/web/rootfs/defaults/meet.conf
++++ b/web/rootfs/defaults/meet.conf
+@@ -1,4 +1,4 @@
+-{{ $ENABLE_XMPP_WEBSOCKET := .Env.ENABLE_XMPP_WEBSOCKET | default "1" | toBool }}
++{{ $ENABLE_XMPP_WEBSOCKET := .Env.ENABLE_XMPP_WEBSOCKET | default "0" | toBool }}
+ 
+ server_name _;
+ 
+diff --git a/web/rootfs/defaults/system-config.js b/web/rootfs/defaults/system-config.js
+index 6026442..a0d16c5 100644
+--- a/web/rootfs/defaults/system-config.js
++++ b/web/rootfs/defaults/system-config.js
+@@ -2,7 +2,7 @@
+ {{ $ENABLE_AUTH := .Env.ENABLE_AUTH | default "false" | toBool -}}
+ {{ $ENABLE_GUESTS := .Env.ENABLE_GUESTS | default "false" | toBool -}}
+ {{ $ENABLE_SUBDOMAINS := .Env.ENABLE_SUBDOMAINS | default "false" | toBool -}}
+-{{ $ENABLE_XMPP_WEBSOCKET := .Env.ENABLE_XMPP_WEBSOCKET | default "1" | toBool -}}
++{{ $ENABLE_XMPP_WEBSOCKET := .Env.ENABLE_XMPP_WEBSOCKET | default "false" | toBool -}}
+ {{ $JICOFO_AUTH_USER := .Env.JICOFO_AUTH_USER | default "focus" }}
+ {{ $PUBLIC_URL_DOMAIN := .Env.PUBLIC_URL | default "https://localhost:8443" | trimPrefix "https://" | trimSuffix "/" -}}
+ {{ $XMPP_AUTH_DOMAIN := .Env.XMPP_AUTH_DOMAIN -}}
