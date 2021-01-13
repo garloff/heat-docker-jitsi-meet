@@ -63,10 +63,12 @@ if test -z "$STATUS"; then
   else
     openssl x509 -in cert.crt -noout -text | grep '\(DNS:\|CN\|Issuer:\|Not After\)'
   fi
-  if test -r watermark-$USERNM.png; then
-    gzip -c watermark-$USERNM.png > watermark.png.gz
+  if test -r watermark-$USERNM.svg; then
+    gzip -c watermark-$USERNM.svg > watermark.svg.gz
+  elif test -r watermark-$USERNM.png; then
+    gzip -c watermark-$USERNM.png > watermark.svg.gz
   else
-    touch watermark.png.gz
+    touch watermark.svg.gz
   fi
   if test -r favicon-$USERNM.ico; then
     gzip -c favicon-$USERNM.ico > favicon.ico.gz
