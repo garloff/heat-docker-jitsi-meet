@@ -227,9 +227,9 @@ resources:
                     cp -p /root/favicon.ico web/rootfs/usr/share/jitsi-meet/images/favicon.ico
                     cp -p /root/favicon.ico web/rootfs/usr/share/jitsi-meet/favicon.ico
                   fi
-                  if test -r /root/watermark.png -a $(stat -c %s /root/watermark.png) -gt 0; then
+                  if test -r /root/watermark.svg -a $(stat -c %s /root/watermark.svg) -gt 0; then
                     mkdir -p web/rootfs/usr/share/jitsi-meet/images
-                    cp -p /root/watermark.png web/rootfs/usr/share/jitsi-meet/images/watermark.png
+                    cp -p /root/watermark.svg web/rootfs/usr/share/jitsi-meet/images/watermark.svg
                   fi
                   # Copy rootfs after installing packages, so files can be overwritten
                   #sed -i 's@^COPY rootfs@#COPY rootfs@' web/Dockerfile
@@ -470,8 +470,8 @@ resources:
             path: /etc/init.d/boot.local
             permissions: 0755
           - encoding: gz+b64
-            content: {get_file: watermark.png.gz}
-            path: /root/watermark.png
+            content: {get_file: watermark.svg.gz}
+            path: /root/watermark.svg
             permissions: 0644
           - encoding: gz+b64
             content: {get_file: favicon.ico.gz}
