@@ -9,21 +9,33 @@ Date:   Mon Dec 28 11:04:01 2020 +0000
     Signed-off-by: Kurt Garloff <kurt@garloff.de>
 
 diff --git a/env.example b/env.example
-index c04292d..b2126f8 100644
+index f90e3e3..f5fa3b3 100644
 --- a/env.example
 +++ b/env.example
-@@ -373,6 +373,9 @@ JIBRI_LOGS_DIR=/config/logs
+@@ -370,6 +370,11 @@ JIBRI_LOGS_DIR=/config/logs
  # Provides means to disable IPv6 in environments that don't support it (get with the times, people!)
  #ENABLE_IPV6=1
  
 +# Enabled XMPP traffic over WebSocket (PUBLIC_URL must be defined!)
 +#ENABLE_XMPP_WEBSOCKET=1
++# Enabled Colibri traffic over WebSocket
++#ENABLE_COLIBRI_WEBSOCKET=1
 +
  # Container restart policy
  # Defaults to unless-stopped
  RESTART_POLICY=unless-stopped
+diff --git a/jvb/rootfs/defaults/jvb.conf b/jvb/rootfs/defaults/jvb.conf
+index 8ba26c4..40bac4d 100644
+--- a/jvb/rootfs/defaults/jvb.conf
++++ b/jvb/rootfs/defaults/jvb.conf
+@@ -1,4 +1,4 @@
+-{{ $ENABLE_COLIBRI_WEBSOCKET := .Env.ENABLE_COLIBRI_WEBSOCKET | default "1" | toBool }}
++{{ $ENABLE_COLIBRI_WEBSOCKET := .Env.ENABLE_COLIBRI_WEBSOCKET | default "0" | toBool }}
+ {{ $ENABLE_OCTO := .Env.ENABLE_OCTO | default "0" | toBool }}
+ {{ $JVB_TCP_PORT := .Env.JVB_TCP_PORT | default "4443" }}
+ {{ $JVB_TCP_MAPPED_PORT := .Env.JVB_TCP_MAPPED_PORT | default $JVB_TCP_PORT }}
 diff --git a/prosody/rootfs/defaults/conf.d/jitsi-meet.cfg.lua b/prosody/rootfs/defaults/conf.d/jitsi-meet.cfg.lua
-index 4eb8f0e..ead15eb 100644
+index 4dcf674..9680c79 100644
 --- a/prosody/rootfs/defaults/conf.d/jitsi-meet.cfg.lua
 +++ b/prosody/rootfs/defaults/conf.d/jitsi-meet.cfg.lua
 @@ -15,7 +15,7 @@ http_default_host = "{{ .Env.XMPP_DOMAIN }}"
@@ -36,11 +48,13 @@ index 4eb8f0e..ead15eb 100644
  
  {{ if and $ENABLE_AUTH (eq $AUTH_TYPE "jwt") .Env.JWT_ACCEPTED_ISSUERS }}
 diff --git a/web/rootfs/defaults/meet.conf b/web/rootfs/defaults/meet.conf
-index 4b10234..8ff0fa9 100644
+index 7ed2d91..aba7d7c 100644
 --- a/web/rootfs/defaults/meet.conf
 +++ b/web/rootfs/defaults/meet.conf
-@@ -1,4 +1,4 @@
+@@ -1,5 +1,5 @@
+-{{ $ENABLE_COLIBRI_WEBSOCKET := .Env.ENABLE_COLIBRI_WEBSOCKET | default "1" | toBool }}
 -{{ $ENABLE_XMPP_WEBSOCKET := .Env.ENABLE_XMPP_WEBSOCKET | default "1" | toBool }}
++{{ $ENABLE_COLIBRI_WEBSOCKET := .Env.ENABLE_COLIBRI_WEBSOCKET | default "0" | toBool }}
 +{{ $ENABLE_XMPP_WEBSOCKET := .Env.ENABLE_XMPP_WEBSOCKET | default "0" | toBool }}
  
  server_name _;
