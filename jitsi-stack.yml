@@ -53,6 +53,10 @@ parameters:
     type: number
     default: 8443
 
+  xmpp_domain:
+    type: string
+    default: ""
+
   timezone:
     type: string
     default: Europe/Amsterdam
@@ -195,6 +199,7 @@ resources:
           - content:
               str_replace:
                 params:
+                  xmpp_domain: {get_param: xmpp_domain}
                   jitsi_version: {get_param: jitsi_version}
                   letsenc_mail: {get_param: letsenc_mail}
                 template: |
@@ -234,12 +239,23 @@ resources:
                   # Copy rootfs after installing packages, so files can be overwritten
                   #sed -i 's@^COPY rootfs@#COPY rootfs@' web/Dockerfile
                   sed -i "s@^\(.*rm \-rf /tmp/pkg.*$\)@\1\n\nCOPY rootfs/ /@" web/Dockerfile
+                  # Workaround 5765 issues: https://github.com/jitsi/docker-jitsi-meet/issues/1018
+                  # Update the configuration
+                  if test -z "xmpp_domain"; then
+                    sed -i -E '/^\s+disable-certificate-verification = true/a \\tclient-proxy = "focus.meet.jitsi"' jicofo/rootfs/defaults/jicofo.conf
+                  else
+                    sed -i -E '/^\s+disable-certificate-verification = true/a \\tclient-proxy = "focus.xmpp_domain"' jicofo/rootfs/defaults/jicofo.conf
+                  fi
+                  # Replace tag - by default, it is "stable-5765" but we want to use "latest", which is the one built by Makefile
+                  sed -i 's/:stable-5765/:latest/' docker-compose.yml
+                  # End workarounds
                   make JITSI_RELEASE=stable
             path: /root/build-jitsi.sh
             permissions: 0700
           - content:
               str_replace:
                 params:
+                  xmpp_domain: {get_param: xmpp_domain}
                   public_domain: {get_param: public_domain}
                   public_port: {get_param: public_port}
                   public_url: {get_param: public_url}
@@ -272,7 +288,7 @@ resources:
                   cp -p docker-jitsi-meet/gen-passwords.sh .
                   ./gen-passwords.sh
                   # Set input parameters
-                  if test -n "public_domain"; then sed -i 's/meet\.jitsi/public_domain/g' .env; fi
+                  if test -n "xmpp_domain"; then sed -i 's/meet\.jitsi/xmpp_domain/g' .env; fi
                   PUBLIC_URL="public_url"
                   if test -z "$PUBLIC_URL"; then PUBLIC_URL="https://public_domain:public_port/"; fi
                   sed -i "s@^#PUBLIC_URL=.*\$@PUBLIC_URL=$PUBLIC_URL@" .env
@@ -311,7 +327,7 @@ resources:
           - content:
               str_replace:
                 params:
-                  public_domain: {get_param: public_domain}
+                  xmpp_domain: {get_param: xmpp_domain}
                   wc_notify: {get_attr: ['jitsi_wait_handle', 'curl_cli']}
                   jitsi_user: {get_param: jitsi_user}
                   jitsi_password: {get_param: jitsi_password}
@@ -402,9 +418,10 @@ resources:
                   fi
                   sleep 1
                   # Deploy users
+                  if test -n "xmpp_domain"; then XMPP_DOMAIN=xmpp_domain; else XMPP_DOMAIN=meet.jitsi; fi
                   USERS=(jitsi_user); PASSW=(jitsi_password)
                   for idx in $(seq 0 $((${#USERS[*]}-1))); do
-                    docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register ${USERS[$idx]} public_domain ${PASSW[$idx]}
+                    docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register ${USERS[$idx]} $XMPP_DOMAIN ${PASSW[$idx]}
                   done
                   # Restart nginx in web container to make SSL/height changes effective
                   #docker restart root_web_1
@@ -417,7 +434,7 @@ resources:
                     cp -p $PROP $PROP.orig
                     echo "## Options added by run.sh script from heat-docker-jitsi-meet" >> $PROP
                     if test -n "jigasi_default_room"; then
-                      echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room@muc.public_domain" >> $PROP
+                      echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room@muc.$XMPP_DOMAIN" >> $PROP
                     fi
                     # enable GSM, Speex, SILK (better compat)
                     sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=690@' $PROP
