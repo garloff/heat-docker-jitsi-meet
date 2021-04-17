@@ -234,7 +234,7 @@ resources:
                   # Copy rootfs after installing packages, so files can be overwritten
                   #sed -i 's@^COPY rootfs@#COPY rootfs@' web/Dockerfile
                   sed -i "s@^\(.*rm \-rf /tmp/pkg.*$\)@\1\n\nCOPY rootfs/ /@" web/Dockerfile
-                  make
+                  make JITSI_RELEASE=stable
             path: /root/build-jitsi.sh
             permissions: 0700
           - content:
@@ -310,6 +310,7 @@ resources:
           - content:
               str_replace:
                 params:
+                  public_domain: {get_param: public_domain}
                   wc_notify: {get_attr: ['jitsi_wait_handle', 'curl_cli']}
                   jitsi_user: {get_param: jitsi_user}
                   jitsi_password: {get_param: jitsi_password}
@@ -402,7 +403,7 @@ resources:
                   # Deploy users
                   USERS=(jitsi_user); PASSW=(jitsi_password)
                   for idx in $(seq 0 $((${#USERS[*]}-1))); do
-                    docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register ${USERS[$idx]}  meet.jitsi ${PASSW[$idx]}
+                    docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register ${USERS[$idx]} public_domain ${PASSW[$idx]}
                   done
                   # Restart nginx in web container to make SSL/height changes effective
                   #docker restart root_web_1
@@ -415,7 +416,7 @@ resources:
                     cp -p $PROP $PROP.orig
                     echo "## Options added by run.sh script from heat-docker-jitsi-meet" >> $PROP
                     if test -n "jigasi_default_room"; then
-                      echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room@muc.meet.jitsi" >> $PROP
+                      echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room@muc.public_domain" >> $PROP
                     fi
                     # enable GSM, Speex, SILK (better compat)
                     sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=690@' $PROP
