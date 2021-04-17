@@ -199,7 +199,6 @@ resources:
           - content:
               str_replace:
                 params:
-                  xmpp_domain: {get_param: xmpp_domain}
                   jitsi_version: {get_param: jitsi_version}
                   letsenc_mail: {get_param: letsenc_mail}
                 template: |
@@ -241,10 +240,8 @@ resources:
                   sed -i "s@^\(.*rm \-rf /tmp/pkg.*$\)@\1\n\nCOPY rootfs/ /@" web/Dockerfile
                   # Workaround 5765 issues: https://github.com/jitsi/docker-jitsi-meet/issues/1018
                   # Update the configuration
-                  if test -z "xmpp_domain"; then
-                    sed -i -E '/^\s+disable-certificate-verification = true/a \\tclient-proxy = "focus.meet.jitsi"' jicofo/rootfs/defaults/jicofo.conf
-                  else
-                    sed -i -E '/^\s+disable-certificate-verification = true/a \\tclient-proxy = "focus.xmpp_domain"' jicofo/rootfs/defaults/jicofo.conf
+                  if ! grep "client\-proxy" jicofo/rootfs/defaults/jicofo.conf >/dev/null; then
+                    sed -i -E '/^\s+disable-certificate-verification = true/a \\tclient-proxy = "focus.{{ .Env.XMPP_DOMAIN }}"' jicofo/rootfs/defaults/jicofo.conf
                   fi
                   # Replace tag - by default, it is "stable-5765" but we want to use "latest", which is the one built by Makefile
                   sed -i 's/:stable-5765/:latest/' docker-compose.yml
