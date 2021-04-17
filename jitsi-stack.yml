@@ -272,6 +272,7 @@ resources:
                   cp -p docker-jitsi-meet/gen-passwords.sh .
                   ./gen-passwords.sh
                   # Set input parameters
+                  if test -n "public_domain"; then sed -i 's/meet\.jitsi/public_domain/g' .env; fi
                   PUBLIC_URL="public_url"
                   if test -z "$PUBLIC_URL"; then PUBLIC_URL="https://public_domain:public_port/"; fi
                   sed -i "s@^#PUBLIC_URL=.*\$@PUBLIC_URL=$PUBLIC_URL@" .env
