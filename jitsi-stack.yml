@@ -147,12 +147,12 @@ parameters:
     type: string
     default: ""
 
-  # Enable VP9
+  # Enable VP9 (numeric here, will be transformed to boolean)
   enable_vp9:
     type: number
     default: 0
 
-  # Enable WSS
+  # Enable WSS (I have never gotten it to work)
   enable_websocket:
     type: number
     default: 0
@@ -203,9 +203,6 @@ resources:
           - content: {get_file: enable-constraints.sed}
             path: /root/enable-constraints.sed
             permissions: 0644
-          - content: {get_file: revert-465816b.diff}
-            path: /root/revert-465816b.diff
-            permissions: 0644
           - content: {get_file: jvb-xmpp-domain.diff}
             path: /root/jvb-xmpp-domain.diff
             permissions: 0644
@@ -231,9 +228,8 @@ resources:
                   git clone https://github.com/jitsi/docker-jitsi-meet
                   cd docker-jitsi-meet
                   git checkout jitsi_version
-                  # XMPP_WEBSOCKET still breaks it, so revert for now
+                  # XMPP_WEBSOCKET breaks us, disable in .env later
                   #git revert 465816b4ebf2babf1b9e6daf007301c1fd17552e
-                  patch -p1 < ../revert-465816b.diff
                   patch -p1 < ../jvb-xmpp-domain.diff
                   # We can safely ignore hanging pipstrap if we are not using letsenc
                   if test -z "letsenc_mail"; then
@@ -258,7 +254,7 @@ resources:
                     sed -i -E '/^\s+disable-certificate-verification = true/a \\tclient-proxy = "focus.{{ .Env.XMPP_DOMAIN }}"' jicofo/rootfs/defaults/jicofo.conf
                   fi
                   # Replace tag - by default, it is "stable-5765" but we want to use "latest", which is the one built by Makefile
-                  sed -i 's/:stable-5765/:latest/' docker-compose.yml
+                  sed -i 's/:stable-5765.*/:latest/' docker-compose.yml
                   # End workarounds
                   make JITSI_RELEASE=stable
             path: /root/build-jitsi.sh
@@ -340,7 +336,7 @@ resources:
                   sed -i 's/^ENABLE_COLIBRI_WEBSOCKET=/#ENABLE_COLIBRI_WEBSOCKET=/' .env
                   echo "ENABLE_XMPP_WEBSOCKET=enable_websocket" >> .env
                   echo "ENABLE_COLIBRI_WEBSOCKET=enable_websocket" >> .env
-                  if test "enable_vp9" != "0"; then echo "ENABLE_CODEC_VP9=1" >> .env; fi
+                  if test "enable_vp9" != "0"; then echo "ENABLE_CODEC_VP9=true" >> .env; fi
             path: /root/config-env.sh
             permissions: 0700
           - content:
