@@ -337,7 +337,9 @@ resources:
                   fi
                   # Disable Websockets
                   sed -i 's/^ENABLE_XMPP_WEBSOCKET=/#ENABLE_XMPP_WEBSOCKET=/' .env
+                  sed -i 's/^ENABLE_COLIBRI_WEBSOCKET=/#ENABLE_COLIBRI_WEBSOCKET=/' .env
                   echo "ENABLE_XMPP_WEBSOCKET=enable_websocket" >> .env
+                  echo "ENABLE_COLIBRI_WEBSOCKET=enable_websocket" >> .env
                   if test "enable_vp9" != "0"; then echo "ENABLE_CODEC_VP9=1" >> .env; fi
             path: /root/config-env.sh
             permissions: 0700
