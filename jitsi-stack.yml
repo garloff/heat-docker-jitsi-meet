@@ -43,7 +43,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-5765
+    default: stable-5765-1
     #default: master
 
   public_domain:
@@ -139,7 +139,7 @@ parameters:
 
   jigasi_port_max:
     type: number
-    default: 20015
+    default: 20020
     # Upstream default is 20050
 
   # Default room for incoming calls
@@ -196,6 +196,9 @@ resources:
           - content: {get_file: revert-465816b.diff}
             path: /root/revert-465816b.diff
             permissions: 0644
+          - content: {get_file: jvb-xmpp-domain.diff}
+            path: /root/jvb-xmpp-domain.diff
+            permissions: 0644
           - content:
               str_replace:
                 params:
@@ -221,6 +224,7 @@ resources:
                   # XMPP_WEBSOCKET still breaks it, so revert for now
                   #git revert 465816b4ebf2babf1b9e6daf007301c1fd17552e
                   patch -p1 < ../revert-465816b.diff
+                  patch -p1 < ../jvb-xmpp-domain.diff
                   # We can safely ignore hanging pipstrap if we are not using letsenc
                   if test -z "letsenc_mail"; then
                     sed -i 's/\(certbot\-auto \-\-noninteractive.*$\)/timeout 21 \1 || true/' web/Dockerfile
