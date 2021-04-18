@@ -147,6 +147,16 @@ parameters:
     type: string
     default: ""
 
+  # Enable VP9
+  enable_vp9:
+    type: number
+    default: 0
+
+  # Enable WSS
+  enable_websocket:
+    type: number
+    default: 0
+
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
 ##########
@@ -272,6 +282,8 @@ resources:
                   jigasi_sip_port: {get_param: jigasi_sip_port}
                   jigasi_port_min: {get_param: jigasi_port_min}
                   jigasi_port_max: {get_param: jigasi_port_max}
+                  enable_vp9: {get_param: enable_vp9}
+                  enable_websocket: {get_param: enable_websocket}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -323,6 +335,10 @@ resources:
                     sed -i 's@^JIGASI_PORT_MIN=.*$@JIGASI_PORT_MIN=jigasi_port_min@' .env
                     sed -i 's@^JIGASI_PORT_MAX=.*$@JIGASI_PORT_MAX=jigasi_port_max@' .env
                   fi
+                  # Disable Websockets
+                  sed -i 's/^ENABLE_XMPP_WEBSOCKET=/#ENABLE_XMPP_WEBSOCKET=/' .env
+                  echo "ENABLE_XMPP_WEBSOCKET=enable_websocket" >> .env
+                  if test "enable_vp9" != "0"; then echo "ENABLE_CODEC_VP9=1" >> .env; fi
             path: /root/config-env.sh
             permissions: 0700
           - content:
