@@ -413,7 +413,7 @@ resources:
                      # TODO: Ensure Simulcast is NOT disabled
                      sed -i 's@^ */* *disableSimulcast:.*$@    disableSimulcast: false,@' $WEBCFG
                      # TODO: Add tweak to enableLayerSuspension
-                     #sed -i 's@^ */* *enableLayerSuspension:.*$@    enableLayerSuspension: true,@' $WEBCFG
+                     sed -i 's@^ */* *enableLayerSuspension:.*$@    enableLayerSuspension: true,@' $WEBCFG
                      # TODO: Allow SuspendVideo
                      #sed -i 's@^ */* *disableSuspendVideo:.*$@    disableSuspendVideo: false,@'  ~/.jitsi-meet-cfg/web/config.js
                      # TODO: StartVideoMuted: 12 enablement
