@@ -206,6 +206,9 @@ resources:
           - content: {get_file: enable-videoqual.sed}
             path: /root/enable-videoqual.sed
             permissions: 0644
+          - content: {get_file: stun-comma.sed}
+            path: /root/stun-comma.sed
+            permissions: 0644
           - content: {get_file: jvb-xmpp-domain.diff}
             path: /root/jvb-xmpp-domain.diff
             permissions: 0644
@@ -437,7 +440,8 @@ resources:
                   fi
                   if test -b "enable_vp9"; then
                     sed -f enable-videoqual.sed -i $WEBCFG
-                    sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*@\1\2'VP9',@" $WEBCFG
+                    sed -f stun-comma.sed -i $WEBCFG
+                    sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*@\1\2'VP9'@" $WEBCFG
                   fi
                   sleep 1
                   # Deploy users
