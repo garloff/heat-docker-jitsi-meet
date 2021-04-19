@@ -1,7 +1,7 @@
-/^        stunServers: [/{
+/^        stunServers: \[/{
 n
 :a
-s@^        ]$@        ],@
+s@^        \]$@        ],@
 t out
 n
 b a
