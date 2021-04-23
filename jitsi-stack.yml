@@ -152,15 +152,26 @@ parameters:
     type: string
     default: ""
 
+  # Enable WSS (I have never gotten it to work)
+  enable_websocket:
+    type: number
+    default: 0
+
   # Enable VP9 (numeric here, will be transformed to boolean)
   enable_vp9:
     type: number
     default: 0
 
-  # Enable WSS (I have never gotten it to work)
-  enable_websocket:
-    type: number
-    default: 0
+  # tweak VP9 bandwidth in kbps low, std, hi: 100, 300, 1200
+  vp9_bandwidth:
+    type: string
+    default: ""
+
+  # tweak VP8 bandwidth in kbps low, std, hi: 200, 500, 1500
+  vp8_bandwidth:
+    type: string
+    default: ""
+
 
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
@@ -372,9 +383,11 @@ resources:
                   tweak_channelLastN: {get_param: tweak_channelLastN}
                   jigasi_sip_uri: {get_param: jigasi_sip_uri}
                   jigasi_default_room: {get_param: jigasi_default_room}
-                  enable_vp9: {get_param: enable_vp9}
                   stun_servers: {get_param: stun_servers}
                   use_stun_p2p: {get_param: use_stun_p2p}
+                  enable_vp9: {get_param: enable_vp9}
+                  vp9_bandwidth: {get_param: vp9_bandwidth}
+                  vp8_bandwidth: {get_param: vp8_bandwidth}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -453,16 +466,23 @@ resources:
                   if test -n "jitsi_watermark_link"; then
                     sed -i "s@JITSI_WATERMARK_LINK: '.*'@JITSI_WATERMARK_LINK: 'jitsi_watermark_link'@" $WEBIFCFG
                   fi
+                  echo "// Overrides by run.sh (heat-docker-jitsi-meet)" >> $WEBCFG
+                  if test "use_stun_p2p" != "0"; then
+                    echo -n "config.p2p.stunServers = [" >> $WEBCFG
+                    echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
+                    echo " ];" >> $WEBCFG
+                  fi
                   if test "enable_vp9" != "0"; then
                     sed -f enable-videoqual.sed -i $WEBCFG
                     sed -f stun-comma.sed -i $WEBCFG
                     sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*@\1\2'VP9'@" $WEBCFG
                     sed -f enable-bitrate-limits.sed -i $WEBCFG
                   fi
-                  if test "use_stun_p2p" != "0"; then
-                    echo -n "config.p2p.stunServers = [" >> $WEBCFG
-                    echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
-                    echo " ];" >> $WEBCFG
+                  if test -n "vp9_bandwidth"; then
+                    echo "vp9_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP9 = { low: \1000, standard: \2000, high: \3000 }@' >> $WEBCFG
+                  fi
+                  if test -n "vp8_bandwidth"; then
+                    echo "vp8_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP8 = { low: \1000, standard: \2000, high: \3000 }@' >> $WEBCFG
                   fi
                   sleep 1
                   # Deploy users
