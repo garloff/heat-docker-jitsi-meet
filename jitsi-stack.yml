@@ -184,6 +184,12 @@ parameters:
     type: number
     default: 12
 
+  # Enable Prejoin Page -- Chrome requires it now
+  # https://developers.google.com/web/updates/2017/09/autoplay-policy-changes#webaudio
+  enable_prejoin:
+    type: number
+    default: 1
+
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
 ##########
@@ -319,6 +325,7 @@ resources:
                   jigasi_port_max: {get_param: jigasi_port_max}
                   enable_vp9: {get_param: enable_vp9}
                   enable_websocket: {get_param: enable_websocket}
+                  enable_prejoin: {get_param: enable_prejoin}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -355,6 +362,7 @@ resources:
                   #sed -i 's@^#ETHERPAD_URL_BASE@ETHERPAD_URL_BASE@' .env
                   sed -i 's@^#ENABLE_AUTH@ENABLE_AUTH@' .env
                   sed -i 's@^#ENABLE_GUESTS@ENABLE_GUESTS@' .env
+                  sed -i 's@^#*ENABLE_PREJOIN_PAGE=.*@ENABLE_PREJOIN_PAGE=enable_prejoin@' .env
                   sed -i 's@^#AUTH_TYPE=@AUTH_TYPE=@' .env
                   sed -i 's@^JVB_STUN_SERVERS=.*$@JVB_STUN_SERVERS=stun_servers@' .env
                   # JIGASI
