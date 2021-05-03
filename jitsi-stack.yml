@@ -172,6 +172,17 @@ parameters:
     type: string
     default: ""
 
+  # tweak limit after which participants join with muted audio
+  # increasing it beyond the no of participants might avoid audio trouble
+  # https://github.com/jitsi/jitsi-meet/issues/5230
+  tweak_AudioMuted:
+    type: number
+    default: 12
+
+  # tweak limit after which participants join with muted video
+  tweak_VideoMuted:
+    type: number
+    default: 12
 
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
@@ -381,6 +392,9 @@ resources:
                   tweak_max_height: {get_param: tweak_max_height}
                   tweak_aspectRatio: {get_param: tweak_aspectRatio}
                   tweak_channelLastN: {get_param: tweak_channelLastN}
+                  tweak_AudioMuted: {get_param: tweak_AudioMuted}
+                  tweak_VideoMuted: {get_param: tweak_VideoMuted}
+                  tweak_channelLastN: {get_param: tweak_channelLastN}
                   jigasi_sip_uri: {get_param: jigasi_sip_uri}
                   jigasi_default_room: {get_param: jigasi_default_room}
                   stun_servers: {get_param: stun_servers}
@@ -483,6 +497,12 @@ resources:
                   fi
                   if test -n "vp8_bandwidth"; then
                     echo "vp8_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP8 = { low: \1000, standard: \2000, high: \3000 }@' >> $WEBCFG
+                  fi
+                  if test "tweak_AudioMuted" != 0; then
+                    sed -i 's@^[/ ]*config\.startAudioMuted = .*$@config.startAudioMuted = tweak_AudioMuted;@' $WEBCFG
+                  fi
+                  if test "tweak_VideoMuted" != 0; then
+                    sed -i 's@^[/ ]*config\.startVideoMuted = .*$@config.startVideoMuted = tweak_VideoMuted;@' $WEBCFG
                   fi
                   sleep 1
                   # Deploy users
