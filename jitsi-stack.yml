@@ -172,6 +172,11 @@ parameters:
     type: string
     default: ""
 
+  # tweak opus rate (in kpbs, default is 20)
+  tweak_opusMaxAvgRate:
+    type: number
+    default: 0
+
   # tweak limit after which participants join with muted audio
   # increasing it beyond the no of participants might avoid audio trouble
   # https://github.com/jitsi/jitsi-meet/issues/5230
@@ -326,6 +331,7 @@ resources:
                   enable_vp9: {get_param: enable_vp9}
                   enable_websocket: {get_param: enable_websocket}
                   enable_prejoin: {get_param: enable_prejoin}
+                  floating_ip: {get_attr: [jitsi_floating_ip, floating_ip_address]}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -348,7 +354,7 @@ resources:
                   if test -z "$PUBLIC_URL"; then PUBLIC_URL="https://public_domain:public_port/"; fi
                   sed -i "s@^#PUBLIC_URL=.*\$@PUBLIC_URL=$PUBLIC_URL@" .env
                   IP=$(ip addr show eth0 | grep 'inet ' | sed 's@^ *inet \([0-9\.]*\)/\([0-9]*\) .*$@\1@')
-                  sed -i "s@^#DOCKER_HOST_ADDRESS=.*\$@DOCKER_HOST_ADDRESS=$IP@" .env
+                  sed -i "s@^#DOCKER_HOST_ADDRESS=.*\$@#DOCKER_HOST_ADDRESS=$IP\nDOCKER_HOST_ADDRESS=floating_ip@" .env
                   if test -n "letsenc_mail"; then
                     sed -i 's/^#LETSENCRYPT_EMAIL=.*$/LETSENCRYPT_EMAIL=letsenc_mail/' .env
                     LETSENC_DOM="letsenc_domain"
@@ -410,6 +416,7 @@ resources:
                   enable_vp9: {get_param: enable_vp9}
                   vp9_bandwidth: {get_param: vp9_bandwidth}
                   vp8_bandwidth: {get_param: vp8_bandwidth}
+                  tweak_opusMaxAvgRate: {get_param: tweak_opusMaxAvgRate}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -501,16 +508,19 @@ resources:
                     sed -f enable-bitrate-limits.sed -i $WEBCFG
                   fi
                   if test -n "vp9_bandwidth"; then
-                    echo "vp9_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP9 = { low: \1000, standard: \2000, high: \3000 }@' >> $WEBCFG
+                    echo "vp9_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP9 = { low: \1000, standard: \2000, high: \3000 };@' >> $WEBCFG
                   fi
                   if test -n "vp8_bandwidth"; then
-                    echo "vp8_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP8 = { low: \1000, standard: \2000, high: \3000 }@' >> $WEBCFG
+                    echo "vp8_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP8 = { low: \1000, standard: \2000, high: \3000 };@' >> $WEBCFG
                   fi
                   if test "tweak_AudioMuted" != 0; then
                     sed -i 's@^[/ ]*config\.startAudioMuted = .*$@config.startAudioMuted = tweak_AudioMuted;@' $WEBCFG
                   fi
                   if test "tweak_VideoMuted" != 0; then
                     sed -i 's@^[/ ]*config\.startVideoMuted = .*$@config.startVideoMuted = tweak_VideoMuted;@' $WEBCFG
+                  fi
+                  if test "tweak_opusMaxAvgRate" != 0; then
+                    echo "config.testing.opusMaxAverageBitrate = tweak_opusMaxAvgRate000;" >> $WEBCFG
                   fi
                   sleep 1
                   # Deploy users
