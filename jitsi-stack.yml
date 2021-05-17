@@ -43,7 +43,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-5765-1
+    default: stable-5870
     #default: master
 
   public_domain:
@@ -304,7 +304,7 @@ resources:
                     sed -i -E '/^\s+disable-certificate-verification = true/a \\tclient-proxy = "focus.{{ .Env.XMPP_DOMAIN }}"' jicofo/rootfs/defaults/jicofo.conf
                   fi
                   # Replace tag - by default, it is "stable-5765" but we want to use "latest", which is the one built by Makefile
-                  sed -i 's/:stable-5765.*/:latest/' docker-compose.yml
+                  sed -i 's/:stable-[5678][0-9-]*/:latest/' docker-compose.yml
                   # End workarounds
                   make JITSI_RELEASE=stable
             path: /root/build-jitsi.sh
