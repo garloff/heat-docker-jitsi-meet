@@ -286,7 +286,7 @@ resources:
                     sed -i 's/\(certbot\-auto \-\-noninteractive.*$\)/timeout 21 \1 || true/' web/Dockerfile
                   fi
                   # FIXME: Pin to stable-5765-1 version for jitsi-meet-web/-config
-                  sed -i '/apt-get/s/jitsi\-meet\-web\(\-config\|\) /jitsi-meet-web\1=1.0.4900-1 /g' web/Dockerfile
+                  #sed -i '/apt-get/s/jitsi\-meet\-web\(\-config\|\) /jitsi-meet-web\1=1.0.4900-1 /g' web/Dockerfile
                   # Inject icon/watermark
                   if test -r /root/favicon.ico -a $(stat -c %s /root/favicon.ico) -gt 0; then
                     mkdir -p web/rootfs/usr/share/jitsi-meet/images
@@ -505,8 +505,8 @@ resources:
                   fi
                   if test "enable_vp9" != "0"; then
                     sed -f enable-videoqual.sed -i $WEBCFG
-                    sed -f stun-comma.sed -i $WEBCFG
-                    sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*@\1\2'VP9'@" $WEBCFG
+                    #sed -f stun-comma.sed -i $WEBCFG
+                    sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*@\1\2'VP9',@" $WEBCFG
                     sed -f enable-bitrate-limits.sed -i $WEBCFG
                   fi
                   if test -n "vp9_bandwidth"; then
