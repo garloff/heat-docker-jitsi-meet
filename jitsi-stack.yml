@@ -177,6 +177,11 @@ parameters:
     type: number
     default: 0
 
+  # switch on stereo
+  enable_stereo:
+    type: number
+    default: 0
+
   # tweak limit after which participants join with muted audio
   # increasing it beyond the no of participants might avoid audio trouble
   # https://github.com/jitsi/jitsi-meet/issues/5230
@@ -419,6 +424,7 @@ resources:
                   vp9_bandwidth: {get_param: vp9_bandwidth}
                   vp8_bandwidth: {get_param: vp8_bandwidth}
                   tweak_opusMaxAvgRate: {get_param: tweak_opusMaxAvgRate}
+                  enable_stereo: {get_param: enable_stereo}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -522,7 +528,10 @@ resources:
                     sed -i 's@^[/ ]*config\.startVideoMuted = .*$@config.startVideoMuted = tweak_VideoMuted;@' $WEBCFG
                   fi
                   if test "tweak_opusMaxAvgRate" != 0; then
-                    echo "config.testing.opusMaxAverageBitrate = tweak_opusMaxAvgRate000;" >> $WEBCFG
+                    echo "config.testing.audioQuality.opusMaxAverageBitrate = tweak_opusMaxAvgRate000;" >> $WEBCFG
+                  fi
+                  if test "enable_stereo" != 0; then
+                    echo "config.testing.audioQuality.stereo = true;" >> $WEBCFG
                   fi
                   sleep 1
                   # Deploy users
