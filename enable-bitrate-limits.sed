@@ -3,7 +3,7 @@
 n
 s@^    },@    },@
 t out
-s@^       preferredCodec: 'VP9'@       preferredCodec: 'VP9',@
+s@^       preferredCodec: 'VP9',*@       preferredCodec: 'VP9',@
 t a
 /    \/\/    maxBitratesVideo:/{
 s@^    //    maxBitratesVideo@       maxBitratesVideo@
