@@ -177,6 +177,11 @@ parameters:
     type: number
     default: 0
 
+  # tweak opus redundancy (bool)
+  tweak_opusRed:
+    type: boolean
+    default: false
+
   # switch on stereo
   enable_stereo:
     type: number
@@ -424,6 +429,7 @@ resources:
                   vp9_bandwidth: {get_param: vp9_bandwidth}
                   vp8_bandwidth: {get_param: vp8_bandwidth}
                   tweak_opusMaxAvgRate: {get_param: tweak_opusMaxAvgRate}
+                  tweak_opusRed: {get_param: tweak_opusRed}
                   enable_stereo: {get_param: enable_stereo}
                 template: |
                   #!/usr/bin/env bash
@@ -529,6 +535,9 @@ resources:
                   fi
                   if test "tweak_opusMaxAvgRate" != 0; then
                     echo "config.testing.audioQuality.opusMaxAverageBitrate = tweak_opusMaxAvgRate000;" >> $WEBCFG
+                  fi
+                   if test "tweak_opusRed" != "false"; then
+                    echo "config.testing.audioQuality.enableOpusRed = tweak_opusRed;" >> $WEBCFG
                   fi
                   if test "enable_stereo" != 0; then
                     echo "config.testing.audioQuality.stereo = true;" >> $WEBCFG
