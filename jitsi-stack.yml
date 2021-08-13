@@ -43,7 +43,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-5390-3
+    default: stable-5963
     #default: master
 
   public_domain:
@@ -52,6 +52,10 @@ parameters:
   public_port:
     type: number
     default: 8443
+
+  xmpp_domain:
+    type: string
+    default: ""
 
   timezone:
     type: string
@@ -107,6 +111,11 @@ parameters:
     #default: stun.stunprotocol.org:3478,stun.services.mozilla.com:3478
     default: stun.hosteurope.de:3478,stun.1und1.de:3478,stun.xs4all.nl,stun.linphone.org:3478,stun.t-online.de:3478
 
+  # Use STUN servers also for p2p
+  use_stun_p2p:
+    type: number
+    default: 0
+
   # Fill these vars if you want to set up a bridge to SIP
   jigasi_sip_uri:
     type: string
@@ -135,13 +144,66 @@ parameters:
 
   jigasi_port_max:
     type: number
-    default: 20015
+    default: 20020
     # Upstream default is 20050
 
   # Default room for incoming calls
   jigasi_default_room:
     type: string
     default: ""
+
+  # Enable WSS (I have never gotten it to work)
+  enable_websocket:
+    type: number
+    default: 0
+
+  # Enable VP9 (numeric here, will be transformed to boolean)
+  enable_vp9:
+    type: number
+    default: 0
+
+  # tweak VP9 bandwidth in kbps low, std, hi: 100, 300, 1200
+  vp9_bandwidth:
+    type: string
+    default: ""
+
+  # tweak VP8 bandwidth in kbps low, std, hi: 200, 500, 1500
+  vp8_bandwidth:
+    type: string
+    default: ""
+
+  # tweak opus rate (in kpbs, default is 20)
+  tweak_opusMaxAvgRate:
+    type: number
+    default: 0
+
+  # tweak opus redundancy (bool)
+  tweak_opusRed:
+    type: boolean
+    default: false
+
+  # switch on stereo
+  enable_stereo:
+    type: number
+    default: 0
+
+  # tweak limit after which participants join with muted audio
+  # increasing it beyond the no of participants might avoid audio trouble
+  # https://github.com/jitsi/jitsi-meet/issues/5230
+  tweak_AudioMuted:
+    type: number
+    default: 12
+
+  # tweak limit after which participants join with muted video
+  tweak_VideoMuted:
+    type: number
+    default: 12
+
+  # Enable Prejoin Page -- Chrome requires it now
+  # https://developers.google.com/web/updates/2017/09/autoplay-policy-changes#webaudio
+  enable_prejoin:
+    type: number
+    default: 1
 
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
@@ -189,8 +251,20 @@ resources:
           - content: {get_file: enable-constraints.sed}
             path: /root/enable-constraints.sed
             permissions: 0644
-          - content: {get_file: revert-465816b.diff}
-            path: /root/revert-465816b.diff
+          - content: {get_file: enable-videoqual.sed}
+            path: /root/enable-videoqual.sed
+            permissions: 0644
+          - content: {get_file: enable-lastN.sed}
+            path: /root/enable-lastN.sed
+            permissions: 0644
+          - content: {get_file: enable-bitrate-limits.sed}
+            path: /root/enable-bitrate-limits.sed
+            permissions: 0644
+          - content: {get_file: stun-comma.sed}
+            path: /root/stun-comma.sed
+            permissions: 0644
+          - content: {get_file: jvb-xmpp-domain.diff}
+            path: /root/jvb-xmpp-domain.diff
             permissions: 0644
           - content:
               str_replace:
@@ -214,13 +288,15 @@ resources:
                   git clone https://github.com/jitsi/docker-jitsi-meet
                   cd docker-jitsi-meet
                   git checkout jitsi_version
-                  # XMPP_WEBSOCKET still breaks it, so revert for now
+                  # XMPP_WEBSOCKET breaks us, disable in .env later
                   #git revert 465816b4ebf2babf1b9e6daf007301c1fd17552e
-                  patch -p1 < ../revert-465816b.diff
+                  patch -p1 < ../jvb-xmpp-domain.diff
                   # We can safely ignore hanging pipstrap if we are not using letsenc
                   if test -z "letsenc_mail"; then
                     sed -i 's/\(certbot\-auto \-\-noninteractive.*$\)/timeout 21 \1 || true/' web/Dockerfile
                   fi
+                  # FIXME: Pin to stable-5765-1 version for jitsi-meet-web/-config
+                  #sed -i '/apt-get/s/jitsi\-meet\-web\(\-config\|\) /jitsi-meet-web\1=1.0.4900-1 /g' web/Dockerfile
                   # Inject icon/watermark
                   if test -r /root/favicon.ico -a $(stat -c %s /root/favicon.ico) -gt 0; then
                     mkdir -p web/rootfs/usr/share/jitsi-meet/images
@@ -234,12 +310,21 @@ resources:
                   # Copy rootfs after installing packages, so files can be overwritten
                   #sed -i 's@^COPY rootfs@#COPY rootfs@' web/Dockerfile
                   sed -i "s@^\(.*rm \-rf /tmp/pkg.*$\)@\1\n\nCOPY rootfs/ /@" web/Dockerfile
-                  make
+                  # Workaround 5765 issues: https://github.com/jitsi/docker-jitsi-meet/issues/1018
+                  # Update the configuration
+                  if ! grep "client\-proxy" jicofo/rootfs/defaults/jicofo.conf >/dev/null; then
+                    sed -i -E '/^\s+disable-certificate-verification = true/a \\tclient-proxy = "focus.{{ .Env.XMPP_DOMAIN }}"' jicofo/rootfs/defaults/jicofo.conf
+                  fi
+                  # Replace tag - by default, it is "stable-5765" but we want to use "latest", which is the one built by Makefile
+                  sed -i 's/:stable-[5678][0-9-]*/:latest/' docker-compose.yml
+                  # End workarounds
+                  make JITSI_RELEASE=stable
             path: /root/build-jitsi.sh
             permissions: 0700
           - content:
               str_replace:
                 params:
+                  xmpp_domain: {get_param: xmpp_domain}
                   public_domain: {get_param: public_domain}
                   public_port: {get_param: public_port}
                   public_url: {get_param: public_url}
@@ -255,6 +340,10 @@ resources:
                   jigasi_sip_port: {get_param: jigasi_sip_port}
                   jigasi_port_min: {get_param: jigasi_port_min}
                   jigasi_port_max: {get_param: jigasi_port_max}
+                  enable_vp9: {get_param: enable_vp9}
+                  enable_websocket: {get_param: enable_websocket}
+                  enable_prejoin: {get_param: enable_prejoin}
+                  floating_ip: {get_attr: [jitsi_floating_ip, floating_ip_address]}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -272,11 +361,12 @@ resources:
                   cp -p docker-jitsi-meet/gen-passwords.sh .
                   ./gen-passwords.sh
                   # Set input parameters
+                  if test -n "xmpp_domain"; then sed -i 's/meet\.jitsi/xmpp_domain/g' .env; fi
                   PUBLIC_URL="public_url"
                   if test -z "$PUBLIC_URL"; then PUBLIC_URL="https://public_domain:public_port/"; fi
                   sed -i "s@^#PUBLIC_URL=.*\$@PUBLIC_URL=$PUBLIC_URL@" .env
                   IP=$(ip addr show eth0 | grep 'inet ' | sed 's@^ *inet \([0-9\.]*\)/\([0-9]*\) .*$@\1@')
-                  sed -i "s@^#DOCKER_HOST_ADDRESS=.*\$@DOCKER_HOST_ADDRESS=$IP@" .env
+                  sed -i "s@^#DOCKER_HOST_ADDRESS=.*\$@#DOCKER_HOST_ADDRESS=$IP\nDOCKER_HOST_ADDRESS=floating_ip@" .env
                   if test -n "letsenc_mail"; then
                     sed -i 's/^#LETSENCRYPT_EMAIL=.*$/LETSENCRYPT_EMAIL=letsenc_mail/' .env
                     LETSENC_DOM="letsenc_domain"
@@ -290,6 +380,7 @@ resources:
                   #sed -i 's@^#ETHERPAD_URL_BASE@ETHERPAD_URL_BASE@' .env
                   sed -i 's@^#ENABLE_AUTH@ENABLE_AUTH@' .env
                   sed -i 's@^#ENABLE_GUESTS@ENABLE_GUESTS@' .env
+                  sed -i 's@^#*ENABLE_PREJOIN_PAGE=.*@ENABLE_PREJOIN_PAGE=enable_prejoin@' .env
                   sed -i 's@^#AUTH_TYPE=@AUTH_TYPE=@' .env
                   sed -i 's@^JVB_STUN_SERVERS=.*$@JVB_STUN_SERVERS=stun_servers@' .env
                   # JIGASI
@@ -305,11 +396,18 @@ resources:
                     sed -i 's@^JIGASI_PORT_MIN=.*$@JIGASI_PORT_MIN=jigasi_port_min@' .env
                     sed -i 's@^JIGASI_PORT_MAX=.*$@JIGASI_PORT_MAX=jigasi_port_max@' .env
                   fi
+                  # Disable Websockets
+                  sed -i 's/^ENABLE_XMPP_WEBSOCKET=/#ENABLE_XMPP_WEBSOCKET=/' .env
+                  sed -i 's/^ENABLE_COLIBRI_WEBSOCKET=/#ENABLE_COLIBRI_WEBSOCKET=/' .env
+                  echo "ENABLE_XMPP_WEBSOCKET=enable_websocket" >> .env
+                  #echo "ENABLE_COLIBRI_WEBSOCKET=enable_websocket" >> .env
+                  if test "enable_vp9" != "0"; then echo "ENABLE_CODEC_VP9=true" >> .env; fi
             path: /root/config-env.sh
             permissions: 0700
           - content:
               str_replace:
                 params:
+                  xmpp_domain: {get_param: xmpp_domain}
                   wc_notify: {get_attr: ['jitsi_wait_handle', 'curl_cli']}
                   jitsi_user: {get_param: jitsi_user}
                   jitsi_password: {get_param: jitsi_password}
@@ -320,8 +418,19 @@ resources:
                   tweak_max_height: {get_param: tweak_max_height}
                   tweak_aspectRatio: {get_param: tweak_aspectRatio}
                   tweak_channelLastN: {get_param: tweak_channelLastN}
+                  tweak_AudioMuted: {get_param: tweak_AudioMuted}
+                  tweak_VideoMuted: {get_param: tweak_VideoMuted}
+                  tweak_channelLastN: {get_param: tweak_channelLastN}
                   jigasi_sip_uri: {get_param: jigasi_sip_uri}
                   jigasi_default_room: {get_param: jigasi_default_room}
+                  stun_servers: {get_param: stun_servers}
+                  use_stun_p2p: {get_param: use_stun_p2p}
+                  enable_vp9: {get_param: enable_vp9}
+                  vp9_bandwidth: {get_param: vp9_bandwidth}
+                  vp8_bandwidth: {get_param: vp8_bandwidth}
+                  tweak_opusMaxAvgRate: {get_param: tweak_opusMaxAvgRate}
+                  tweak_opusRed: {get_param: tweak_opusRed}
+                  enable_stereo: {get_param: enable_stereo}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -379,7 +488,7 @@ resources:
                      sed -i 's@^ */* *enableLayerSuspension:.*$@    enableLayerSuspension: true,@' $WEBCFG
                      # TODO: Allow SuspendVideo
                      #sed -i 's@^ */* *disableSuspendVideo:.*$@    disableSuspendVideo: false,@'  ~/.jitsi-meet-cfg/web/config.js
-                     # TODO: StartVideoMuted: 10 enablement
+                     # TODO: StartVideoMuted: 12 enablement
                   fi
                   if test -n "tweak_max_height" -a "tweak_max_height" != "0"; then
                      sed -i "s@^\([^/]*max:\)[ 0-9]*,\$@\1 tweak_max_height,@" $WEBCFG
@@ -389,6 +498,8 @@ resources:
                   fi
                   if test -n "tweak_channelLastN" -a "tweak_channelLastN" != "-1"; then
                     sed -i 's@channelLastN: [-0-9]*@channelLastN: tweak_channelLastN@' $WEBCFG
+                  else
+                    sed -f enable-lastN.sed -i $WEBCFG
                   fi
                   sed -i 's@^ */* *requireDisplayName:.*$@    requireDisplayName: true,@' $WEBCFG
                   sed -i 's@^config\.requireDisplayName = .*$@config.requireDisplayName = true;@' $WEBCFG
@@ -398,11 +509,45 @@ resources:
                   if test -n "jitsi_watermark_link"; then
                     sed -i "s@JITSI_WATERMARK_LINK: '.*'@JITSI_WATERMARK_LINK: 'jitsi_watermark_link'@" $WEBIFCFG
                   fi
+                  echo "// Overrides by run.sh (heat-docker-jitsi-meet)" >> $WEBCFG
+                  if test "use_stun_p2p" != "0"; then
+                    echo -n "config.p2p.stunServers = [" >> $WEBCFG
+                    echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
+                    echo " ];" >> $WEBCFG
+                  fi
+                  if test "enable_vp9" != "0"; then
+                    sed -f enable-videoqual.sed -i $WEBCFG
+                    #sed -f stun-comma.sed -i $WEBCFG
+                    sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*\$@\1\2'VP9',@" $WEBCFG
+                    sed -f enable-bitrate-limits.sed -i $WEBCFG
+                  fi
+                  if test -n "vp9_bandwidth"; then
+                    echo "vp9_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP9 = { low: \1000, standard: \2000, high: \3000 };@' >> $WEBCFG
+                  fi
+                  if test -n "vp8_bandwidth"; then
+                    echo "vp8_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP8 = { low: \1000, standard: \2000, high: \3000 };@' >> $WEBCFG
+                  fi
+                  if test "tweak_AudioMuted" != 0; then
+                    sed -i 's@^[/ ]*config\.startAudioMuted = .*$@config.startAudioMuted = tweak_AudioMuted;@' $WEBCFG
+                  fi
+                  if test "tweak_VideoMuted" != 0; then
+                    sed -i 's@^[/ ]*config\.startVideoMuted = .*$@config.startVideoMuted = tweak_VideoMuted;@' $WEBCFG
+                  fi
+                  if test "tweak_opusMaxAvgRate" != 0; then
+                    echo "config.testing.audioQuality.opusMaxAverageBitrate = tweak_opusMaxAvgRate000;" >> $WEBCFG
+                  fi
+                   if test "tweak_opusRed" != "false"; then
+                    echo "config.testing.audioQuality.enableOpusRed = tweak_opusRed;" >> $WEBCFG
+                  fi
+                  if test "enable_stereo" != 0; then
+                    echo "config.testing.audioQuality.stereo = true;" >> $WEBCFG
+                  fi
                   sleep 1
                   # Deploy users
+                  if test -n "xmpp_domain"; then XMPP_DOMAIN=xmpp_domain; else XMPP_DOMAIN=meet.jitsi; fi
                   USERS=(jitsi_user); PASSW=(jitsi_password)
                   for idx in $(seq 0 $((${#USERS[*]}-1))); do
-                    docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register ${USERS[$idx]}  meet.jitsi ${PASSW[$idx]}
+                    docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register ${USERS[$idx]} $XMPP_DOMAIN ${PASSW[$idx]}
                   done
                   # Restart nginx in web container to make SSL/height changes effective
                   #docker restart root_web_1
@@ -415,7 +560,7 @@ resources:
                     cp -p $PROP $PROP.orig
                     echo "## Options added by run.sh script from heat-docker-jitsi-meet" >> $PROP
                     if test -n "jigasi_default_room"; then
-                      echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room@muc.meet.jitsi" >> $PROP
+                      echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room@muc.$XMPP_DOMAIN" >> $PROP
                     fi
                     # enable GSM, Speex, SILK (better compat)
                     sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=690@' $PROP
