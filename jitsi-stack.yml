@@ -205,6 +205,11 @@ parameters:
     type: number
     default: 1
 
+  # https://community.jitsi.org/t/screensharing-crashing-when-using-vp9/103411/6
+  disable_screenshare_framerate:
+    type: number
+    default: 0
+
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
 ##########
@@ -431,6 +436,7 @@ resources:
                   tweak_opusMaxAvgRate: {get_param: tweak_opusMaxAvgRate}
                   tweak_opusRed: {get_param: tweak_opusRed}
                   enable_stereo: {get_param: enable_stereo}
+                  disable_screenshare_framerate: {get_param: disable_screenshare_framerate}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -541,6 +547,9 @@ resources:
                   fi
                   if test "enable_stereo" != 0; then
                     echo "config.testing.audioQuality.stereo = true;" >> $WEBCFG
+                  fi
+                  if test "disable_screenshare_framerate" != 0; then
+                    sed -i 's@^config.desktopSharingFrameRate@//config.desktopSharingFrameRate@' $WEBCFG
                   fi
                   sleep 1
                   # Deploy users
