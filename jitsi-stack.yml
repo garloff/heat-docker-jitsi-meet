@@ -210,6 +210,11 @@ parameters:
     type: number
     default: 0
 
+  # Avoid disabling harvester
+  disable_tcp_harvester:
+    type: boolean
+    default: true
+
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
 ##########
@@ -349,6 +354,7 @@ resources:
                   enable_websocket: {get_param: enable_websocket}
                   enable_prejoin: {get_param: enable_prejoin}
                   floating_ip: {get_attr: [jitsi_floating_ip, floating_ip_address]}
+                  disable_tcp_harvester: {get_param: disable_tcp_harvester}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -407,6 +413,8 @@ resources:
                   echo "ENABLE_XMPP_WEBSOCKET=enable_websocket" >> .env
                   #echo "ENABLE_COLIBRI_WEBSOCKET=enable_websocket" >> .env
                   if test "enable_vp9" != "0"; then echo "ENABLE_CODEC_VP9=true" >> .env; fi
+                  DIS_HARV=$(echo disable_tcp_harvester | tr A-Z a-z)
+                  sed -i "s/\(JVB_TCP_HARVESTER_DISABLED=\).*/\1$DIS_HARV/" .env
             path: /root/config-env.sh
             permissions: 0700
           - content:
