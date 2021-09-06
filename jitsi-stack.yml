@@ -412,6 +412,9 @@ resources:
                   sed -i 's/^ENABLE_COLIBRI_WEBSOCKET=/#ENABLE_COLIBRI_WEBSOCKET=/' .env
                   echo "ENABLE_XMPP_WEBSOCKET=enable_websocket" >> .env
                   #echo "ENABLE_COLIBRI_WEBSOCKET=enable_websocket" >> .env
+                  if test "enable_websocket" = "0"; then
+                    echo "ENABLE_SCTP=1" >> .env
+                  fi
                   if test "enable_vp9" != "0"; then echo "ENABLE_CODEC_VP9=true" >> .env; fi
                   DIS_HARV=$(echo disable_tcp_harvester | tr A-Z a-z)
                   sed -i "s/\(JVB_TCP_HARVESTER_DISABLED=\).*/\1$DIS_HARV/" .env
