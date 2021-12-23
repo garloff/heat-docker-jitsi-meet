@@ -46,6 +46,10 @@ parameters:
     default: stable-5963
     #default: master
 
+  docker_mtu:
+    type: number
+    default: 1440
+
   public_domain:
     type: string
 
@@ -634,6 +638,16 @@ resources:
               fi
             path: /etc/init.d/boot.local
             permissions: 0755
+          - content:
+              str_replace:
+                params:
+                  docker_mtu: {get_param: docker_mtu}
+                template: |
+                  {
+                    "mtu": docker_mtu
+                  }
+            path: /tmp/daemon.json
+            permissions: 0644
           - encoding: gz+b64
             content: {get_file: watermark.svg.gz}
             path: /root/watermark.svg
@@ -644,6 +658,7 @@ resources:
             permissions: 0644
 
         runcmd:
+          - "mv /tmp/daemon.json /etc/docker/daemon.json"
           - "systemctl enable docker"
           - "/root/build-jitsi.sh"
           - "/root/config-env.sh"
@@ -702,6 +717,7 @@ resources:
     type: OS::Neutron::Net
     properties:
       name: {get_param: "OS::stack_name"}
+      # Comment these out if your cloud does not support them
       value_specs:
         availability_zone_hints:
           - {get_param: availability_zone}
@@ -732,6 +748,7 @@ resources:
         network: {get_param: public}
         # OTC
         # enable_snat: true
+      # Comment these out if your cloud does not support them
       value_specs:
         availability_zone_hints:
           - {get_param: availability_zone}
