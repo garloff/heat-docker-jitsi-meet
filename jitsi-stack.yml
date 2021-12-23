@@ -15,7 +15,7 @@ parameters:
     constraints:
       - custom_constraint: nova.flavor
     #OTC default: s2.large.4
-    default: 2C-4GB-10GB
+    default: SCS-2V:4:10
 
   availability_zone:
     type: string
@@ -46,9 +46,10 @@ parameters:
     default: stable-5963
     #default: master
 
+  # Lower this to 1440 (or 1376) if you have trouble with 1500
   docker_mtu:
     type: number
-    default: 1440
+    default: 1500
 
   public_domain:
     type: string
