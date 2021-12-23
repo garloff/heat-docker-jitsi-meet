@@ -7,13 +7,13 @@
 #cd ~
 source .ostackrc.JITSI
 STACK=$(openstack stack list -f value -c "Stack Name" -c "Stack Status" | grep jitsi)
-STACK_NM=${STACK% *}
+STACK_NM=${STACK%% *}
 if test -z "$STACK_NM"; then echo "Could not find jitsi stack to delete."; exit 1; fi
 if test -n "$1"; then
   # User might have passed not just USERNM but template filename
-  if test -r "$1"; then USERNM=${1%.yml}; USERNM=${USERNM##*-user-}; else USERNM=$1; fi
+  if test -r "$1"; then USERNM="${1%.yml}"; USERNM="${USERNM##*-user-}"; else USERNM="$1"; fi
   if test "$STACK_NM" != "jitsi-$USERNM"; then
-    echo "WARNING: Found $STACK_NM, but requesting deletion of $STACK-$USERNM"
+    echo "WARNING: Found $STACK_NM, but requesting deletion of jitsi-$USERNM"
     STACK_NM="jitsi-$USERNM"
   fi
 else

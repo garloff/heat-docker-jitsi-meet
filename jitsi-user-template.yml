@@ -6,7 +6,14 @@ parameter_defaults:
   jitsi_password: JITSI_PASSWORD JITSI_PASSWORD2
   public_domain: DOMAIN_FOR_JITSI
   public_port: PORT_FOR_JITSI
+  # Cloud specific
+  #image_jitsi: openSUSE 15.3
+  #flavor_jitsi: SCS-4V:8
+  #availability_zone: az1
+  #docker_mtu: 1440
+  #public: ext01
   # Optional
+  #jitsi_version: stable-6726-1
   #timezone: Europe/Amsterdam
   #ui_language: nl
   #letsenc_mail: MAIL_FOR_LETSENCRYPT
