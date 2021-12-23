@@ -10,7 +10,7 @@ parameter_defaults:
   #image_jitsi: openSUSE 15.3
   #flavor_jitsi: SCS-4V:8
   #availability_zone: az1
-  #docker_mtu: 1440
+  #docker_mtu: 0
   #public: ext01
   # Optional
   #jitsi_version: stable-6726-1

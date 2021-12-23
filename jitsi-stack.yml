@@ -46,10 +46,11 @@ parameters:
     default: stable-6726-1
     #default: master
 
-  # Lower this to 1440 (or 1376) if you have trouble with 1500
+  # Default 0 is autodetect (using the MTU from the default route's NIC)
+  # Any other number (e.g. 1440) overrides this.
   docker_mtu:
     type: number
-    default: 1500
+    default: 0
 
   public_domain:
     type: string
@@ -657,8 +658,17 @@ resources:
             content: {get_file: favicon.ico.gz}
             path: /root/favicon.ico
             permissions: 0644
-
+          - content: |
+              #!/bin/bash
+              DEV=$(ip route show default | head -n1 | sed 's/^.*dev \([^ ]*\).*$/\1/')
+              MTU=$(ip link show $DEV | head -n1 | sed 's/^.*mtu \([0-9]*\) .*$/\1/')
+              if grep '"mtu": 0' /tmp/daemon.json >/dev/null; then
+                  sed -i "s/: 0/: $MTU/" /tmp/daemon.json
+              fi
+            path: /root/set_mtu.sh
+            permissions: 0755
         runcmd:
+          - "/root/set_mtu.sh"
           - "mv /tmp/daemon.json /etc/docker/daemon.json"
           - "systemctl enable docker"
           - "/root/build-jitsi.sh"
