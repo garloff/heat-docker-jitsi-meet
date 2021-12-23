@@ -15,7 +15,7 @@ parameters:
     constraints:
       - custom_constraint: nova.flavor
     default: s2.large.4
-    #default: 2C-4GB-10GB
+    #default: SCS-2V:4:10
 
   availability_zone:
     type: string
@@ -45,6 +45,11 @@ parameters:
     type: string
     default: stable-6726-1
     #default: master
+
+  # Lower this to 1440 (or 1376) if you have trouble with 1500
+  docker_mtu:
+    type: number
+    default: 1500
 
   public_domain:
     type: string
@@ -634,6 +639,16 @@ resources:
               fi
             path: /etc/init.d/boot.local
             permissions: 0755
+          - content:
+              str_replace:
+                params:
+                  docker_mtu: {get_param: docker_mtu}
+                template: |
+                  {
+                    "mtu": docker_mtu
+                  }
+            path: /tmp/daemon.json
+            permissions: 0644
           - encoding: gz+b64
             content: {get_file: watermark.svg.gz}
             path: /root/watermark.svg
@@ -644,6 +659,7 @@ resources:
             permissions: 0644
 
         runcmd:
+          - "mv /tmp/daemon.json /etc/docker/daemon.json"
           - "systemctl enable docker"
           - "/root/build-jitsi.sh"
           - "/root/config-env.sh"
@@ -702,6 +718,10 @@ resources:
     type: OS::Neutron::Net
     properties:
       name: {get_param: "OS::stack_name"}
+      # Comment these out if your cloud does not support them
+      #value_specs:
+      #  availability_zone_hints:
+      #    - {get_param: availability_zone}
 
   subnet_jitsi:
     type: OS::Neutron::Subnet
@@ -730,6 +750,10 @@ resources:
         network: {get_param: public}
         # OTC
         enable_snat: true
+      # Comment these out if your cloud does not support them
+      #value_specs:
+      #  availability_zone_hints:
+      #    - {get_param: availability_zone}
 
   router_interface:
     type: OS::Neutron::RouterInterface
