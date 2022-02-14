@@ -682,7 +682,7 @@ resources:
                   workaround_heat_internal_ep_broken: {get_param: workaround_heat_internal_ep_broken}
                 template: |
                   #!/bin/bash
-                  if test "workaround_heat_internal_ep_broken" = "true"; then bash heat-public-ep.sh; fi
+                  if test "workaround_heat_internal_ep_broken" = "True"; then /root/heat-public-ep.sh; fi
             permissions: 0755
             path: /root/heat-adjust.sh
         runcmd:
