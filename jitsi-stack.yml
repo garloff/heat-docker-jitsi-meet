@@ -683,8 +683,8 @@ resources:
                 template: |
                   #!/bin/bash
                   if test "workaround_heat_internal_ep_broken" = "true"; then bash heat-public-ep.sh; fi
-             permissions: 0755
-             path: /root/heat-adjust.sh
+            permissions: 0755
+            path: /root/heat-adjust.sh
         runcmd:
           - "/root/set_mtu.sh"
           - "mv /tmp/daemon.json /etc/docker/daemon.json"
