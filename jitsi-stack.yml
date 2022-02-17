@@ -265,28 +265,28 @@ resources:
         write_files:
           - content: {get_file: cert.crt}
             path: /root/cert.crt
-            permissions: 0644
+            permissions: '0644'
           - content: {get_file: cert.key}
             path: /root/cert.key
-            permissions: 0600
+            permissions: '0600'
           - content: {get_file: enable-constraints.sed}
             path: /root/enable-constraints.sed
-            permissions: 0644
+            permissions: '0644'
           - content: {get_file: enable-videoqual.sed}
             path: /root/enable-videoqual.sed
-            permissions: 0644
+            permissions: '0644'
           - content: {get_file: enable-lastN.sed}
             path: /root/enable-lastN.sed
-            permissions: 0644
+            permissions: '0644'
           - content: {get_file: enable-bitrate-limits.sed}
             path: /root/enable-bitrate-limits.sed
-            permissions: 0644
+            permissions: '0644'
           - content: {get_file: stun-comma.sed}
             path: /root/stun-comma.sed
-            permissions: 0644
+            permissions: '0644'
           - content: {get_file: jvb-xmpp-domain.diff}
             path: /root/jvb-xmpp-domain.diff
-            permissions: 0644
+            permissions: '0644'
           - content:
               str_replace:
                 params:
@@ -341,7 +341,7 @@ resources:
                   # End workarounds
                   make JITSI_RELEASE=stable
             path: /root/build-jitsi.sh
-            permissions: 0700
+            permissions: '0700'
           - content:
               str_replace:
                 params:
@@ -430,7 +430,7 @@ resources:
                   DIS_HARV=$(echo disable_tcp_harvester | tr A-Z a-z)
                   sed -i "s/\(JVB_TCP_HARVESTER_DISABLED=\).*/\1$DIS_HARV/" .env
             path: /root/config-env.sh
-            permissions: 0700
+            permissions: '0700'
           - content:
               str_replace:
                 params:
@@ -610,13 +610,10 @@ resources:
                     docker restart root_jigasi_1
                   fi
                   # Signal completion
-                  # FIXME: Replace private with public endpoint if needed:w
+                  # Note: Optionally replace internal with public endpoint (heat-public-ep.sh)
                   wc_notify --data-binary '{"status": "SUCCESS"}'
             path: /root/run.sh
-            permissions: 0700
-          - content: {get_file: heat-public-ep.sh}
-            path: /root/heat-public-ep.sh
-            permissions: 0750
+            permissions: '0700'
           - content:
               str_replace:
                 params:
@@ -634,7 +631,7 @@ resources:
                     docker-compose -f ~/docker-compose.yml down
                   fi
             path: /root/down.sh
-            permissions: 0750
+            permissions: '0750'
           - content: |
               #!/bin/bash
               if test "$1" = "status"; then
@@ -648,7 +645,7 @@ resources:
                 exit 3
               fi
             path: /etc/init.d/boot.local
-            permissions: 0755
+            permissions: '0755'
           - content:
               str_replace:
                 params:
@@ -658,15 +655,15 @@ resources:
                     "mtu": docker_mtu
                   }
             path: /tmp/daemon.json
-            permissions: 0644
+            permissions: '0644'
           - encoding: gz+b64
             content: {get_file: watermark.svg.gz}
             path: /root/watermark.svg
-            permissions: 0644
+            permissions: '0644'
           - encoding: gz+b64
             content: {get_file: favicon.ico.gz}
             path: /root/favicon.ico
-            permissions: 0644
+            permissions: '0644'
           - content: |
               #!/bin/bash
               DEV=$(ip route show default | head -n1 | sed 's/^.*dev \([^ ]*\).*$/\1/')
@@ -675,7 +672,23 @@ resources:
                   sed -i "s/: 0/: $MTU/" /tmp/daemon.json
               fi
             path: /root/set_mtu.sh
-            permissions: 0755
+            permissions: '0755'
+          - content: |
+              #!/bin/bash
+              declare -i ctr=0
+              echo -n "Waiting for DNS to work: "
+              while test $ctr -le 360; do
+                if getent hosts download.opensuse.org >/dev/null 2>&1; then break; fi
+                echo -n "."
+                sleep 10
+                let ctr+=1
+              done
+              if test $ctr -gt 360; then echo "FAIL"; exit 1; else echo "SUCCESS"; fi
+            path: /root/wait-dns.sh
+            permissions: '0755'
+          - content: {get_file: heat-public-ep.sh}
+            path: /root/heat-public-ep.sh
+            permissions: '0750'
           - content:
               str_replace:
                 params:
@@ -683,12 +696,13 @@ resources:
                 template: |
                   #!/bin/bash
                   if test "workaround_heat_internal_ep_broken" = "True"; then /root/heat-public-ep.sh; fi
-            permissions: 0755
+            permissions: '0755'
             path: /root/heat-adjust.sh
         runcmd:
           - "/root/set_mtu.sh"
           - "mv /tmp/daemon.json /etc/docker/daemon.json"
           - "systemctl enable docker"
+          - "/root/wait-dns.sh"
           - "/root/build-jitsi.sh"
           - "/root/config-env.sh"
           - "sed -i \"/After=/iAfter=docker.service\" /usr/lib/systemd/system/rc-local.service"

@@ -82,7 +82,7 @@ if test -z "$STATUS"; then
   OS_HEAT_INT=${OS_HEAT_INT%/*}
   OS_HEAT_PUB=${OS_HEAT_PUB%/*}
   EXC='!'
-  echo -e "#${EXC}/bin/bash\nsed \"s@$OS_HEAT_INT@$OS_HEAT_PUB@\" -i run.sh" > heat-public-ep.sh
+  echo -e "#${EXC}/bin/bash\nsed \"s@$OS_HEAT_INT@$OS_HEAT_PUB@\" -i /root/run.sh" > heat-public-ep.sh
   openstack stack create --timeout 26 -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM
   if test $? != 0; then
     echo "openstack stack create FAILED for $USERNM"
