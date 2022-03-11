@@ -221,6 +221,11 @@ parameters:
     type: boolean
     default: true
 
+  # Needs public heat EP tweak
+  workaround_heat_internal_ep_broken:
+    type: boolean
+    default: false
+
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
 ##########
@@ -605,6 +610,7 @@ resources:
                     docker restart root_jigasi_1
                   fi
                   # Signal completion
+                  # Note: Optionally replace internal with public endpoint (heat-public-ep.sh)
                   wc_notify --data-binary '{"status": "SUCCESS"}'
             path: /root/run.sh
             permissions: '0700'
@@ -680,6 +686,18 @@ resources:
               if test $ctr -gt 360; then echo "FAIL ($((10*$ctr))s)"; exit 1; else echo "SUCCESS ($((10*$ctr))s)"; fi
             path: /root/wait-dns.sh
             permissions: '0755'
+          - content: {get_file: heat-public-ep.sh}
+            path: /root/heat-public-ep.sh
+            permissions: '0750'
+          - content:
+              str_replace:
+                params:
+                  workaround_heat_internal_ep_broken: {get_param: workaround_heat_internal_ep_broken}
+                template: |
+                  #!/bin/bash
+                  if test "workaround_heat_internal_ep_broken" = "True"; then /root/heat-public-ep.sh; fi
+            permissions: '0755'
+            path: /root/heat-adjust.sh
         runcmd:
           - "/root/set_mtu.sh"
           - "mv /tmp/daemon.json /etc/docker/daemon.json"
@@ -688,6 +706,7 @@ resources:
           - "/root/build-jitsi.sh"
           - "/root/config-env.sh"
           - "sed -i \"/After=/iAfter=docker.service\" /usr/lib/systemd/system/rc-local.service"
+          - "/root/heat-adjust.sh"
           - "/root/run.sh"
         final_message: "The system is finally up, after $UPTIME seconds"
 
@@ -743,9 +762,9 @@ resources:
     properties:
       name: {get_param: "OS::stack_name"}
       # Comment these out if your cloud does not support them
-      value_specs:
-        availability_zone_hints:
-          - {get_param: availability_zone}
+      #value_specs:
+      #  availability_zone_hints:
+      #    - {get_param: availability_zone}
 
   subnet_jitsi:
     type: OS::Neutron::Subnet
@@ -775,9 +794,9 @@ resources:
         # OTC
         # enable_snat: true
       # Comment these out if your cloud does not support them
-      value_specs:
-        availability_zone_hints:
-          - {get_param: availability_zone}
+      #value_specs:
+      #  availability_zone_hints:
+      #    - {get_param: availability_zone}
 
   router_interface:
     type: OS::Neutron::RouterInterface

@@ -75,6 +75,14 @@ if test -z "$STATUS"; then
   else
     touch favicon.ico.gz
   fi
+  # Prepare heat replacement
+  OS_CAT=$(openstack catalog list -f json)
+  OS_HEAT_INT=$(echo "$OS_CAT" | jq '.[]|select(.Type=="orchestration")|.Endpoints[]|select(.interface=="internal")|.url' | tr -d '"')
+  OS_HEAT_PUB=$(echo "$OS_CAT" | jq '.[]|select(.Type=="orchestration")|.Endpoints[]|select(.interface=="public")|.url'  | tr -d '"')
+  OS_HEAT_INT=${OS_HEAT_INT%/*}
+  OS_HEAT_PUB=${OS_HEAT_PUB%/*}
+  EXC='!'
+  echo -e "#${EXC}/bin/bash\nsed \"s@$OS_HEAT_INT@$OS_HEAT_PUB@\" -i /root/run.sh" > heat-public-ep.sh
   openstack stack create --timeout 26 -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM
   if test $? != 0; then
     echo "openstack stack create FAILED for $USERNM"
