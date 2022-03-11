@@ -677,7 +677,7 @@ resources:
                 sleep 10
                 let ctr+=1
               done
-              if test $ctr -gt 360; then echo "FAIL"; exit 1; else echo "SUCCESS"; fi
+              if test $ctr -gt 360; then echo "FAIL ($((10*$ctr))s)"; exit 1; else echo "SUCCESS ($((10*$ctr))s)"; fi
             path: /root/wait-dns.sh
             permissions: '0755'
         runcmd:
@@ -756,7 +756,7 @@ resources:
       # OTC
       #dns_nameservers: [ 100.125.4.25, 9.9.9.9 ]
       #dns_nameservers: [ 86.107.242.101, 8.8.8.8 ]
-      dns_nameservers: [ 9.9.9.9, 8.8.8.8 ]
+      dns_nameservers: [ 5.1.66.255, 185.150.99.255 ]
       allocation_pools:
         -
           start: 192.168.10.100
