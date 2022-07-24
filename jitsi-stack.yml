@@ -43,7 +43,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-7287
+    default: stable-7439-2
     #default: master
 
   # Default 0 is autodetect (using the MTU from the default route's NIC)
@@ -698,6 +698,9 @@ resources:
                   if test "workaround_heat_internal_ep_broken" = "True"; then /root/heat-public-ep.sh; fi
             permissions: '0755'
             path: /root/heat-adjust.sh
+          - content: {get_file: adjust-docker-compose-version.sh}
+            path: /root/adjust-docker-compose-version.sh
+            permissions: '0755'
         runcmd:
           - "/root/set_mtu.sh"
           - "mv /tmp/daemon.json /etc/docker/daemon.json"
@@ -707,6 +710,7 @@ resources:
           - "/root/config-env.sh"
           - "sed -i \"/After=/iAfter=docker.service\" /usr/lib/systemd/system/rc-local.service"
           - "/root/heat-adjust.sh"
+          - "/root/adjust-docker-compose-version.sh"
           - "/root/run.sh"
         final_message: "The system is finally up, after $UPTIME seconds"
 
