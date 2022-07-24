@@ -29,7 +29,7 @@
 # PRs are welcome, but I do not consider most limitations as bugs, so better send patches ...
 #
 # (c) Kurt Garloff <kurt@garloff.de>, 3/2020
-# License: CC-BY-SA 3.0
+# SPDX-License-Identifier: CC-BY-SA-4.0
 #cd ~
 # Setup openstack environment
 if test ! -r .ostackrc.JITSI; then echo "Create .ostackrc.JITSI to configure your env for OpenStack access"; exit 1; fi
