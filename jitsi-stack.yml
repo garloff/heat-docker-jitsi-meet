@@ -269,21 +269,6 @@ resources:
           - content: {get_file: cert.key}
             path: /root/cert.key
             permissions: '0600'
-          - content: {get_file: enable-constraints.sed}
-            path: /root/enable-constraints.sed
-            permissions: '0644'
-          - content: {get_file: enable-videoqual.sed}
-            path: /root/enable-videoqual.sed
-            permissions: '0644'
-          - content: {get_file: enable-lastN.sed}
-            path: /root/enable-lastN.sed
-            permissions: '0644'
-          - content: {get_file: enable-bitrate-limits.sed}
-            path: /root/enable-bitrate-limits.sed
-            permissions: '0644'
-          - content: {get_file: stun-comma.sed}
-            path: /root/stun-comma.sed
-            permissions: '0644'
           - content: {get_file: jvb-xmpp-domain.diff}
             path: /root/jvb-xmpp-domain.diff
             permissions: '0644'
@@ -447,7 +432,6 @@ resources:
                   tweak_channelLastN: {get_param: tweak_channelLastN}
                   tweak_AudioMuted: {get_param: tweak_AudioMuted}
                   tweak_VideoMuted: {get_param: tweak_VideoMuted}
-                  tweak_channelLastN: {get_param: tweak_channelLastN}
                   jigasi_sip_uri: {get_param: jigasi_sip_uri}
                   jigasi_default_room: {get_param: jigasi_default_room}
                   stun_servers: {get_param: stun_servers}
@@ -496,58 +480,51 @@ resources:
                   # Does no longer work in newer templates
                   ASPECT="16/9"
                   if test -n "tweak_aspectRatio"; then
-                     sed -i "s@aspectRatio: [0-9/, ]*\$@aspectRatio: tweak_aspectRatio@" $WEBCFG
+                     #sed -i "s@aspectRatio: [0-9/, ]*\$@aspectRatio: tweak_aspectRatio@" $WEBCFG
                      ASPECT="tweak_aspectRatio"
                   fi
                   if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
-                     # TODO: Enable the complete Constraints section
-                     sed -f enable-constraints.sed -i $WEBCFG
-                     # Tweak idael height and min
-                     sed -i "s@^\(.*ideal:\)[ 0-9]*@\1 tweak_ideal_height@" $WEBCFG
-                     sed -i "s@^\([^/]*min:\)[ 0-9]*\$@\1 180@" $WEBCFG
                      # New config style
                      WIDTH=$((tweak_ideal_height*$ASPECT))
                      sed -i 's@^\(config\.resolution =\).*$@\1 tweak_ideal_height;@' $WEBCFG
                      sed -i "s@^\(config\.constraints\.video\.height = { ideal:\) [0-9]*,@\1 tweak_ideal_height,@" $WEBCFG
                      sed -i "s@^\(config\.constraints\.video\.width = { ideal:\) [0-9]*,@\1 $WIDTH,@" $WEBCFG
-                     # TODO: Ensure Simulcast is NOT disabled
-                     sed -i 's@^ */* *disableSimulcast:.*$@    disableSimulcast: false,@' $WEBCFG
-                     # TODO: Add tweak to enableLayerSuspension
-                     sed -i 's@^ */* *enableLayerSuspension:.*$@    enableLayerSuspension: true,@' $WEBCFG
-                     # TODO: Allow SuspendVideo
-                     #sed -i 's@^ */* *disableSuspendVideo:.*$@    disableSuspendVideo: false,@'  ~/.jitsi-meet-cfg/web/config.js
-                     # TODO: StartVideoMuted: 12 enablement
-                  fi
+                                   fi
                   if test -n "tweak_max_height" -a "tweak_max_height" != "0"; then
-                     sed -i "s@^\([^/]*max:\)[ 0-9]*,\$@\1 tweak_max_height,@" $WEBCFG
+                     #sed -i "s@^\([^/]*max:\)[ 0-9]*,\$@\1 tweak_max_height,@" $WEBCFG
                      WIDTH=$((tweak_max_height*$ASPECT))
                      sed -i "s@^\(config\.constraints\.video\.height = { ideal: [0-9]*, max:\) [0-9]*,@\1 tweak_max_height,@" $WEBCFG
                      sed -i "s@^\(config\.constraints\.video\.width = { ideal: [0-9]*, max:\) [0-9]*,@\1 $WIDTH,@" $WEBCFG
                   fi
+                  # TODO: Ensure Simulcast is NOT disabled
+                  #sed -i 's@^ */* *disableSimulcast:.*$@    disableSimulcast: false,@' $WEBCFG
+                  # TODO: Add tweak to enableLayerSuspension
+                  sed -i "/config\.disableSimulcast/aconfig.enableLayerSuspension = true;" $WEBCFG
+                  # TODO: Allow SuspendVideo
+                  #sed -i "/config\.enableLayerSuspension/aconfig.disableSuspendVideo = false;" $WEBCFG
+                  echo "// Overrides by run.sh (heat-docker-jitsi-meet)" >> $WEBCFG
                   if test -n "tweak_channelLastN" -a "tweak_channelLastN" != "-1"; then
-                    sed -i 's@channelLastN: [-0-9]*@channelLastN: tweak_channelLastN@' $WEBCFG
+                    echo "config.channelLastN = tweak_channelLastN;" >> $WEBCFG
                   else
-                    sed -f enable-lastN.sed -i $WEBCFG
+                    echo "config.lastNLimits = { 5:20, 30:15, 50:10, 70:5, 90:2 };" >> $WEBCFG
                   fi
-                  sed -i 's@^ */* *requireDisplayName:.*$@    requireDisplayName: true,@' $WEBCFG
+                  #sed -i 's@^ */* *requireDisplayName:.*$@    requireDisplayName: true,@' $WEBCFG
                   sed -i 's@^config\.requireDisplayName = .*$@config.requireDisplayName = true;@' $WEBCFG
                   if test "ui_language" != "en"; then
-                    sed -i "s@^ */* *defaultLanguage:.*\$@    defaultLanguage: 'ui_language',@" $WEBCFG
+                    #sed -i "s@^ */* *defaultLanguage:.*\$@    defaultLanguage: 'ui_language',@" $WEBCFG
+                    echo "config.defaultLanguage = 'ui_language';" >> $WEBCFG
                   fi
                   if test -n "jitsi_watermark_link"; then
                     sed -i "s@JITSI_WATERMARK_LINK: '.*'@JITSI_WATERMARK_LINK: 'jitsi_watermark_link'@" $WEBIFCFG
                   fi
-                  echo "// Overrides by run.sh (heat-docker-jitsi-meet)" >> $WEBCFG
                   if test "use_stun_p2p" != "0"; then
                     echo -n "config.p2p.stunServers = [" >> $WEBCFG
                     echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
                     echo " ];" >> $WEBCFG
                   fi
                   if test "enable_vp9" != "0"; then
-                    sed -f enable-videoqual.sed -i $WEBCFG
-                    #sed -f stun-comma.sed -i $WEBCFG
-                    sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*\$@\1\2'VP9',@" $WEBCFG
-                    sed -f enable-bitrate-limits.sed -i $WEBCFG
+                    #sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*\$@\1\2'VP9',@" $WEBCFG
+                    echo "config.videoQuality.preferredCodec = 'VP9';" >> $WEBCFG
                   fi
                   if test -n "vp9_bandwidth"; then
                     echo "vp9_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP9 = { low: \1000, standard: \2000, high: \3000 };@' >> $WEBCFG
