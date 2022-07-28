@@ -525,6 +525,7 @@ resources:
                   if test "enable_vp9" != "0"; then
                     #sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*\$@\1\2'VP9',@" $WEBCFG
                     echo "config.videoQuality.preferredCodec = 'VP9';" >> $WEBCFG
+                    echo "config.p2p.preferredCodec = 'VP9';" >> $WEBCFG
                   fi
                   if test -n "vp9_bandwidth"; then
                     echo "vp9_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP9 = { low: \1000, standard: \2000, high: \3000 };@' >> $WEBCFG
