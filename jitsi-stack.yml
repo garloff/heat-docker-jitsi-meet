@@ -205,6 +205,12 @@ parameters:
     type: number
     default: 12
 
+  # tweak MAXMEM for JVB (MiB), use 6144 to double allowed mem for JVB
+  # Default of 0 leaves this alone
+  tweak_jvbMaxmem:
+    type: number
+    default: 0
+
   # Enable Prejoin Page -- Chrome requires it now
   # https://developers.google.com/web/updates/2017/09/autoplay-policy-changes#webaudio
   enable_prejoin:
@@ -277,6 +283,7 @@ resources:
                 params:
                   jitsi_version: {get_param: jitsi_version}
                   letsenc_mail: {get_param: letsenc_mail}
+                  tweak_jvbMaxmem: {get_param: tweak_jvbMaxmem}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -296,7 +303,8 @@ resources:
                   git checkout jitsi_version
                   # XMPP_WEBSOCKET breaks us, disable in .env later
                   #git revert 465816b4ebf2babf1b9e6daf007301c1fd17552e
-                  patch -p1 < ../jvb-xmpp-domain.diff
+                  # Move jvb into XMPP domain -- no longer used
+                  #patch -p1 < ../jvb-xmpp-domain.diff
                   # We can safely ignore hanging pipstrap if we are not using letsenc
                   if test -z "letsenc_mail"; then
                     sed -i 's/\(certbot\-auto \-\-noninteractive.*$\)/timeout 21 \1 || true/' web/Dockerfile
@@ -324,6 +332,15 @@ resources:
                   # Replace tag - by default, it is "stable-5765" but we want to use "latest", which is the one built by Makefile
                   sed -i 's/:stable-[5678][0-9-]*/:latest/' docker-compose.yml
                   # End workarounds
+                  # jvbMaxmem tweaks
+                  JVBMM=tweak_jvbMaxmem
+                  JVBMM=${JVBMM%m}
+                  # Avoid crazily low values
+                  if test $JVBMM -ge 1536; then
+                    mkdir -p jvb/rootfs/usr/share/jitsi-videobridge/lib/
+                    echo -e "# Max mem for JVB (64bit Linux Java -Xmx), default 3072m\nVIDEOBRIDGE_MAX_MEMORY=${JVBMM}m\n" > jvb/rootfs/usr/share/jitsi-videobridge/lib/videobridge.rc
+                    echo -e "# Enable this for debugging\n# VIDEOBRIDGE_DEBUG_OPTIONS=\"-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8000\"" >> jvb/rootfs/usr/share/jitsi-videobridge/lib/videobridge.rc
+                  fi
                   make JITSI_RELEASE=stable
             path: /root/build-jitsi.sh
             permissions: '0700'
