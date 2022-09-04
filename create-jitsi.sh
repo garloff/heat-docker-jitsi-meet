@@ -105,12 +105,6 @@ done
 echo "Jitsi address: $JITSI_ADDRESS"
 # Optional .dyndns allows for updating Dynamic DNS server via REST call
 PUB_DOM=$(grep ' public_domain:' jitsi-user-$USERNM.yml | sed 's/^[^:]*: *\(.*\) *$/\1/')
-unset DURL
-if test -r .dyndns-$USERNM; then source .dyndns-$USERNM; elif test -r .dyndns; then source .dyndns; fi
-# Keep this for backward compatibility
-if test -n "$DURL"; then curl -k "$DURL"; fi
-# Those two could contain sensitive data, so clear again
-unset DPASS DURL
 STATUS=$(openstack stack show jitsi-$USERNM -f value -c stack_status)
 # Save private key
 openstack stack output show jitsi-$USERNM private_key -c output_value -f value  > jitsi-$USERNM.ssh
@@ -141,6 +135,14 @@ while test "$STATUS" != "CREATE_FAILED" -a "$STATUS" != "CREATE_COMPLETE"; do
 done
 if test "$STATUS" != "CREATE_COMPLETE"; then
   openstack stack show jitsi-$USERNM -c stack_status_reason -f value
+  echo "DNS not redirected to $JITSI_ADDRESS for $PUB_DOM"
+else
+  unset DURL
+  if test -r .dyndns-$USERNM; then source .dyndns-$USERNM; elif test -r .dyndns; then source .dyndns; fi
+  # Keep this for backward compatibility
+  if test -n "$DURL"; then curl -k "$DURL"; fi
+  # Those two could contain sensitive data, so clear again
+  unset DPASS DURL
 fi
 # Now output results
 STOP=$(date +%s)
