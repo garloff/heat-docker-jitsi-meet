@@ -43,13 +43,14 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-6726-1
+    default: stable-7439-2
     #default: master
 
-  # Lower this to 1440 (or 1376) if you have trouble with 1500
+  # Default 0 is autodetect (using the MTU from the default route's NIC)
+  # Any other number (e.g. 1440) overrides this.
   docker_mtu:
     type: number
-    default: 1500
+    default: 0
 
   public_domain:
     type: string
@@ -114,7 +115,7 @@ parameters:
     type: string
     #default: stun.l.google.com:19302,stun1.l.google.com:19302,stun2.l.google.com:19302
     #default: stun.stunprotocol.org:3478,stun.services.mozilla.com:3478
-    default: stun.hosteurope.de:3478,stun.1und1.de:3478,stun.xs4all.nl,stun.linphone.org:3478,stun.t-online.de:3478
+    default: stun.stunprotocol.org:3478,stun.hosteurope.de:3478,stun.1und1.de:3478,stun.xs4all.nl,stun.linphone.org:3478,stun.t-online.de:3478
 
   # Use STUN servers also for p2p
   use_stun_p2p:
@@ -204,6 +205,12 @@ parameters:
     type: number
     default: 12
 
+  # tweak MAXMEM for JVB (MiB), use 6144 to double allowed mem for JVB
+  # Default of 0 leaves this alone
+  tweak_jvbMaxmem:
+    type: number
+    default: 0
+
   # Enable Prejoin Page -- Chrome requires it now
   # https://developers.google.com/web/updates/2017/09/autoplay-policy-changes#webaudio
   enable_prejoin:
@@ -219,6 +226,11 @@ parameters:
   disable_tcp_harvester:
     type: boolean
     default: true
+
+  # Needs public heat EP tweak
+  workaround_heat_internal_ep_broken:
+    type: boolean
+    default: false
 
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
@@ -259,33 +271,19 @@ resources:
         write_files:
           - content: {get_file: cert.crt}
             path: /root/cert.crt
-            permissions: 0644
+            permissions: '0644'
           - content: {get_file: cert.key}
             path: /root/cert.key
-            permissions: 0600
-          - content: {get_file: enable-constraints.sed}
-            path: /root/enable-constraints.sed
-            permissions: 0644
-          - content: {get_file: enable-videoqual.sed}
-            path: /root/enable-videoqual.sed
-            permissions: 0644
-          - content: {get_file: enable-lastN.sed}
-            path: /root/enable-lastN.sed
-            permissions: 0644
-          - content: {get_file: enable-bitrate-limits.sed}
-            path: /root/enable-bitrate-limits.sed
-            permissions: 0644
-          - content: {get_file: stun-comma.sed}
-            path: /root/stun-comma.sed
-            permissions: 0644
+            permissions: '0600'
           - content: {get_file: jvb-xmpp-domain.diff}
             path: /root/jvb-xmpp-domain.diff
-            permissions: 0644
+            permissions: '0644'
           - content:
               str_replace:
                 params:
                   jitsi_version: {get_param: jitsi_version}
                   letsenc_mail: {get_param: letsenc_mail}
+                  tweak_jvbMaxmem: {get_param: tweak_jvbMaxmem}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -305,7 +303,8 @@ resources:
                   git checkout jitsi_version
                   # XMPP_WEBSOCKET breaks us, disable in .env later
                   #git revert 465816b4ebf2babf1b9e6daf007301c1fd17552e
-                  patch -p1 < ../jvb-xmpp-domain.diff
+                  # Move jvb into XMPP domain -- no longer used
+                  #patch -p1 < ../jvb-xmpp-domain.diff
                   # We can safely ignore hanging pipstrap if we are not using letsenc
                   if test -z "letsenc_mail"; then
                     sed -i 's/\(certbot\-auto \-\-noninteractive.*$\)/timeout 21 \1 || true/' web/Dockerfile
@@ -333,9 +332,18 @@ resources:
                   # Replace tag - by default, it is "stable-5765" but we want to use "latest", which is the one built by Makefile
                   sed -i 's/:stable-[5678][0-9-]*/:latest/' docker-compose.yml
                   # End workarounds
+                  # jvbMaxmem tweaks
+                  JVBMM=tweak_jvbMaxmem
+                  JVBMM=${JVBMM%m}
+                  # Avoid crazily low values
+                  if test $JVBMM -ge 1536; then
+                    mkdir -p jvb/rootfs/usr/share/jitsi-videobridge/lib/
+                    echo -e "# Max mem for JVB (64bit Linux Java -Xmx), default 3072m\nVIDEOBRIDGE_MAX_MEMORY=${JVBMM}m\n" > jvb/rootfs/usr/share/jitsi-videobridge/lib/videobridge.rc
+                    echo -e "# Enable this for debugging\n# VIDEOBRIDGE_DEBUG_OPTIONS=\"-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8000\"" >> jvb/rootfs/usr/share/jitsi-videobridge/lib/videobridge.rc
+                  fi
                   make JITSI_RELEASE=stable
             path: /root/build-jitsi.sh
-            permissions: 0700
+            permissions: '0700'
           - content:
               str_replace:
                 params:
@@ -424,7 +432,7 @@ resources:
                   DIS_HARV=$(echo disable_tcp_harvester | tr A-Z a-z)
                   sed -i "s/\(JVB_TCP_HARVESTER_DISABLED=\).*/\1$DIS_HARV/" .env
             path: /root/config-env.sh
-            permissions: 0700
+            permissions: '0700'
           - content:
               str_replace:
                 params:
@@ -441,7 +449,6 @@ resources:
                   tweak_channelLastN: {get_param: tweak_channelLastN}
                   tweak_AudioMuted: {get_param: tweak_AudioMuted}
                   tweak_VideoMuted: {get_param: tweak_VideoMuted}
-                  tweak_channelLastN: {get_param: tweak_channelLastN}
                   jigasi_sip_uri: {get_param: jigasi_sip_uri}
                   jigasi_default_room: {get_param: jigasi_default_room}
                   stun_servers: {get_param: stun_servers}
@@ -490,58 +497,52 @@ resources:
                   # Does no longer work in newer templates
                   ASPECT="16/9"
                   if test -n "tweak_aspectRatio"; then
-                     sed -i "s@aspectRatio: [0-9/, ]*\$@aspectRatio: tweak_aspectRatio@" $WEBCFG
+                     #sed -i "s@aspectRatio: [0-9/, ]*\$@aspectRatio: tweak_aspectRatio@" $WEBCFG
                      ASPECT="tweak_aspectRatio"
                   fi
                   if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
-                     # TODO: Enable the complete Constraints section
-                     sed -f enable-constraints.sed -i $WEBCFG
-                     # Tweak idael height and min
-                     sed -i "s@^\(.*ideal:\)[ 0-9]*@\1 tweak_ideal_height@" $WEBCFG
-                     sed -i "s@^\([^/]*min:\)[ 0-9]*\$@\1 180@" $WEBCFG
                      # New config style
                      WIDTH=$((tweak_ideal_height*$ASPECT))
                      sed -i 's@^\(config\.resolution =\).*$@\1 tweak_ideal_height;@' $WEBCFG
                      sed -i "s@^\(config\.constraints\.video\.height = { ideal:\) [0-9]*,@\1 tweak_ideal_height,@" $WEBCFG
                      sed -i "s@^\(config\.constraints\.video\.width = { ideal:\) [0-9]*,@\1 $WIDTH,@" $WEBCFG
-                     # TODO: Ensure Simulcast is NOT disabled
-                     sed -i 's@^ */* *disableSimulcast:.*$@    disableSimulcast: false,@' $WEBCFG
-                     # TODO: Add tweak to enableLayerSuspension
-                     sed -i 's@^ */* *enableLayerSuspension:.*$@    enableLayerSuspension: true,@' $WEBCFG
-                     # TODO: Allow SuspendVideo
-                     #sed -i 's@^ */* *disableSuspendVideo:.*$@    disableSuspendVideo: false,@'  ~/.jitsi-meet-cfg/web/config.js
-                     # TODO: StartVideoMuted: 12 enablement
-                  fi
+                                   fi
                   if test -n "tweak_max_height" -a "tweak_max_height" != "0"; then
-                     sed -i "s@^\([^/]*max:\)[ 0-9]*,\$@\1 tweak_max_height,@" $WEBCFG
+                     #sed -i "s@^\([^/]*max:\)[ 0-9]*,\$@\1 tweak_max_height,@" $WEBCFG
                      WIDTH=$((tweak_max_height*$ASPECT))
                      sed -i "s@^\(config\.constraints\.video\.height = { ideal: [0-9]*, max:\) [0-9]*,@\1 tweak_max_height,@" $WEBCFG
                      sed -i "s@^\(config\.constraints\.video\.width = { ideal: [0-9]*, max:\) [0-9]*,@\1 $WIDTH,@" $WEBCFG
                   fi
+                  # TODO: Ensure Simulcast is NOT disabled
+                  #sed -i 's@^ */* *disableSimulcast:.*$@    disableSimulcast: false,@' $WEBCFG
+                  # TODO: Add tweak to enableLayerSuspension
+                  sed -i "/config\.disableSimulcast/aconfig.enableLayerSuspension = true;" $WEBCFG
+                  # TODO: Allow SuspendVideo
+                  #sed -i "/config\.enableLayerSuspension/aconfig.disableSuspendVideo = false;" $WEBCFG
+                  echo "// Overrides by run.sh (heat-docker-jitsi-meet)" >> $WEBCFG
                   if test -n "tweak_channelLastN" -a "tweak_channelLastN" != "-1"; then
-                    sed -i 's@channelLastN: [-0-9]*@channelLastN: tweak_channelLastN@' $WEBCFG
+                    echo "config.channelLastN = tweak_channelLastN;" >> $WEBCFG
                   else
-                    sed -f enable-lastN.sed -i $WEBCFG
+                    echo "config.lastNLimits = { 5:20, 30:15, 50:10, 70:5, 90:2 };" >> $WEBCFG
                   fi
-                  sed -i 's@^ */* *requireDisplayName:.*$@    requireDisplayName: true,@' $WEBCFG
+                  #sed -i 's@^ */* *requireDisplayName:.*$@    requireDisplayName: true,@' $WEBCFG
                   sed -i 's@^config\.requireDisplayName = .*$@config.requireDisplayName = true;@' $WEBCFG
                   if test "ui_language" != "en"; then
-                    sed -i "s@^ */* *defaultLanguage:.*\$@    defaultLanguage: 'ui_language',@" $WEBCFG
+                    #sed -i "s@^ */* *defaultLanguage:.*\$@    defaultLanguage: 'ui_language',@" $WEBCFG
+                    echo "config.defaultLanguage = 'ui_language';" >> $WEBCFG
                   fi
                   if test -n "jitsi_watermark_link"; then
                     sed -i "s@JITSI_WATERMARK_LINK: '.*'@JITSI_WATERMARK_LINK: 'jitsi_watermark_link'@" $WEBIFCFG
                   fi
-                  echo "// Overrides by run.sh (heat-docker-jitsi-meet)" >> $WEBCFG
                   if test "use_stun_p2p" != "0"; then
                     echo -n "config.p2p.stunServers = [" >> $WEBCFG
                     echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
                     echo " ];" >> $WEBCFG
                   fi
                   if test "enable_vp9" != "0"; then
-                    sed -f enable-videoqual.sed -i $WEBCFG
-                    #sed -f stun-comma.sed -i $WEBCFG
-                    sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*\$@\1\2'VP9',@" $WEBCFG
-                    sed -f enable-bitrate-limits.sed -i $WEBCFG
+                    #sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*\$@\1\2'VP9',@" $WEBCFG
+                    echo "config.videoQuality.preferredCodec = 'VP9';" >> $WEBCFG
+                    echo "config.p2p.preferredCodec = 'VP9';" >> $WEBCFG
                   fi
                   if test -n "vp9_bandwidth"; then
                     echo "vp9_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP9 = { low: \1000, standard: \2000, high: \3000 };@' >> $WEBCFG
@@ -604,9 +605,10 @@ resources:
                     docker restart root_jigasi_1
                   fi
                   # Signal completion
+                  # Note: Optionally replace internal with public endpoint (heat-public-ep.sh)
                   wc_notify --data-binary '{"status": "SUCCESS"}'
             path: /root/run.sh
-            permissions: 0700
+            permissions: '0700'
           - content:
               str_replace:
                 params:
@@ -624,7 +626,7 @@ resources:
                     docker-compose -f ~/docker-compose.yml down
                   fi
             path: /root/down.sh
-            permissions: 0750
+            permissions: '0750'
           - content: |
               #!/bin/bash
               if test "$1" = "status"; then
@@ -638,7 +640,7 @@ resources:
                 exit 3
               fi
             path: /etc/init.d/boot.local
-            permissions: 0755
+            permissions: '0755'
           - content:
               str_replace:
                 params:
@@ -648,22 +650,62 @@ resources:
                     "mtu": docker_mtu
                   }
             path: /tmp/daemon.json
-            permissions: 0644
+            permissions: '0644'
           - encoding: gz+b64
             content: {get_file: watermark.svg.gz}
             path: /root/watermark.svg
-            permissions: 0644
+            permissions: '0644'
           - encoding: gz+b64
             content: {get_file: favicon.ico.gz}
             path: /root/favicon.ico
-            permissions: 0644
-
+            permissions: '0644'
+          - content: |
+              #!/bin/bash
+              DEV=$(ip route show default | head -n1 | sed 's/^.*dev \([^ ]*\).*$/\1/')
+              MTU=$(ip link show $DEV | head -n1 | sed 's/^.*mtu \([0-9]*\) .*$/\1/')
+              if grep '"mtu": 0' /tmp/daemon.json >/dev/null; then
+                  sed -i "s/: 0/: $MTU/" /tmp/daemon.json
+              fi
+            path: /root/set_mtu.sh
+            permissions: '0755'
+          - content: |
+              #!/bin/bash
+              declare -i ctr=0
+              echo -n "Waiting for DNS to work: "
+              while test $ctr -le 360; do
+                if getent hosts download.opensuse.org >/dev/null 2>&1; then break; fi
+                echo -n "."
+                sleep 10
+                let ctr+=1
+              done
+              if test $ctr -gt 360; then echo "FAIL ($((10*$ctr))s)"; exit 1; else echo "SUCCESS ($((10*$ctr))s)"; fi
+            path: /root/wait-dns.sh
+            permissions: '0755'
+          - content: {get_file: heat-public-ep.sh}
+            path: /root/heat-public-ep.sh
+            permissions: '0750'
+          - content:
+              str_replace:
+                params:
+                  workaround_heat_internal_ep_broken: {get_param: workaround_heat_internal_ep_broken}
+                template: |
+                  #!/bin/bash
+                  if test "workaround_heat_internal_ep_broken" = "True"; then /root/heat-public-ep.sh; fi
+            permissions: '0755'
+            path: /root/heat-adjust.sh
+          - content: {get_file: adjust-docker-compose-version.sh}
+            path: /root/adjust-docker-compose-version.sh
+            permissions: '0755'
         runcmd:
+          - "/root/set_mtu.sh"
           - "mv /tmp/daemon.json /etc/docker/daemon.json"
           - "systemctl enable docker"
+          - "/root/wait-dns.sh"
           - "/root/build-jitsi.sh"
           - "/root/config-env.sh"
           - "sed -i \"/After=/iAfter=docker.service\" /usr/lib/systemd/system/rc-local.service"
+          - "/root/heat-adjust.sh"
+          - "/root/adjust-docker-compose-version.sh"
           - "/root/run.sh"
         final_message: "The system is finally up, after $UPTIME seconds"
 
@@ -730,9 +772,10 @@ resources:
       network: {get_resource: net_jitsi}
       cidr: 192.168.10.0/24
       # OTC
-      dns_nameservers: [ 100.125.4.25, 9.9.9.9 ]
+      dns_nameservers: [ 100.125.4.25, 5.1.66.255 ]
       #dns_nameservers: [ 9.9.9.9, 8.8.8.8 ]
       #dns_nameservers: [ 86.107.242.101, 8.8.8.8 ]
+      #dns_nameservers: [ 5.1.66.255, 185.150.99.255 ]
       allocation_pools:
         -
           start: 192.168.10.100
