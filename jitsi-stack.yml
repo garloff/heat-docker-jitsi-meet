@@ -232,6 +232,11 @@ parameters:
     type: boolean
     default: false
 
+  # Enable etherpad
+  enable_etherpad:
+    type: boolean
+    default: false
+
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
 ##########
@@ -366,6 +371,7 @@ resources:
                   enable_vp9: {get_param: enable_vp9}
                   enable_websocket: {get_param: enable_websocket}
                   enable_prejoin: {get_param: enable_prejoin}
+                  enable_etherpad: {get_param: enable_etherpad}
                   floating_ip: {get_attr: [jitsi_floating_ip, floating_ip_address]}
                   disable_tcp_harvester: {get_param: disable_tcp_harvester}
                 template: |
@@ -378,6 +384,7 @@ resources:
                   cp -p docker-compose.yml etherpad.yml jigasi.yml ~
                   cp -p env.example ~/.env
                   cd ..
+                  sed -i 's@etherpad/etherpad:1.8.6@etherpad/etherpad:latest@' etherpad.yml
                   for nm in *.yml; do sed -i 's@^\( *image: jitsi/[^:]*\):.*$@\1:latest@g' $nm; done
                   chmod 0600 .env
                   # This is only used internally
@@ -431,6 +438,11 @@ resources:
                   if test "enable_vp9" != "0"; then echo "ENABLE_CODEC_VP9=true" >> .env; fi
                   DIS_HARV=$(echo disable_tcp_harvester | tr A-Z a-z)
                   sed -i "s/\(JVB_TCP_HARVESTER_DISABLED=\).*/\1$DIS_HARV/" .env
+                  if test "enable_etherpad" = "True"; then
+                    sed -i 's/^#ETHERPAD_URL_BASE/ETHERPAD_URL_BASE/' .env
+                    sed -i "s@^#ETHERPAD_PUBLIC_URL=.*\$@ETHERPAD_PUBLIC_URL=${PUBLIC_URL}etherpad/p/@" .env
+                    sed -i 's/ETHERPAD_DEFAULT_PAD_TEXT=.*$/ETHERPAD_DEFAULT_PAD_TEXT="Ephemeral(!) Web Chat.\n"/' .env
+                  fi
             path: /root/config-env.sh
             permissions: '0700'
           - content:
@@ -459,6 +471,7 @@ resources:
                   tweak_opusMaxAvgRate: {get_param: tweak_opusMaxAvgRate}
                   tweak_opusRed: {get_param: tweak_opusRed}
                   enable_stereo: {get_param: enable_stereo}
+                  enable_etherpad: {get_param: enable_etherpad}
                   disable_screenshare_framerate: {get_param: disable_screenshare_framerate}
                 template: |
                   #!/usr/bin/env bash
@@ -467,13 +480,14 @@ resources:
                   export HOME=/$USER
                   cd ~
 
-                  JIGASI_SIP_URI="jigasi_sip_uri"
-                  if test -n "$JIGASI_SIP_URI"; then
-                    docker-compose -f ~/docker-compose.yml -f ~/jigasi.yml up -d
-                  else
-                    docker-compose -f ~/docker-compose.yml up -d
+                  DFILES="-f ~/docker-compose.yml"
+                  if test -n "jigasi_sip_uri"; then
+                    DFILES="$DFILES -f ~/jigasi.yml"
                   fi
-                  #docker-compose -f ~/docker-compose.yml $START_JIGASI -f ~/etherpad.yml up -d
+                  if test "enable_etherpad" = "True"; then
+                    DFILES="$DFILES -f ~/etherpad.yml"
+                  fi
+                  eval docker-compose $DFILES up -d
 
                   WEBCFG=~/.jitsi-meet-cfg/web/config.js
                   WEBIFCFG=~/.jitsi-meet-cfg/web/interface_config.js
@@ -580,7 +594,7 @@ resources:
                   NGINX=$(ps -x | grep "nginx: master" | grep -v grep | awk '{ print $1; }')
                   kill $NGINX
                   # Dial-In
-                  if test -n "$JIGASI_SIP_URI"; then
+                  if test -n "jigasi_sip_uri"; then
                     # Tweak jigasi default room
                     PROP=~/.jitsi-meet-cfg/jigasi/sip-communicator.properties
                     cp -p $PROP $PROP.orig
@@ -613,18 +627,21 @@ resources:
               str_replace:
                 params:
                   jigasi_sip_uri: {get_param: jigasi_sip_uri}
+                  enable_etherpad: {get_param: enable_etherpad}
                 template: |
                   #!/bin/bash
                   export USER=root
                   export USERNAME=$USER
                   export HOME=/$USER
                   cd ~
-                  #docker-compose -f ~/docker-compose.yml -f ~/etherpad.yml down
+                  DFILES="-f ~/docker-compose.yml"
                   if test -n "jigasi_sip_uri"; then
-                    docker-compose -f ~/docker-compose.yml -f ~/jigasi.yml down
-                  else
-                    docker-compose -f ~/docker-compose.yml down
+                    DFILES="$DFILES -f ~/jigasi.yml"
                   fi
+                  if test "enable_etherpad" = "True"; then
+                    DFILES="$DFILES -f ~/etherpad.yml"
+                  fi
+                  eval docker-compose $DFILES down
             path: /root/down.sh
             permissions: '0750'
           - content: |
