@@ -328,7 +328,8 @@ resources:
                   fi
                   # Copy rootfs after installing packages, so files can be overwritten
                   #sed -i 's@^COPY rootfs@#COPY rootfs@' web/Dockerfile
-                  sed -i "s@^\(.*rm \-rf /tmp/pkg.*$\)@\1\n\nCOPY rootfs/ /@" web/Dockerfile
+                  #sed -i "s@^\(.*rm \-rf /tmp/pkg.*$\)@\1\n\nCOPY rootfs/ /@" web/Dockerfile
+                  sed -i "/^EXPOSE/a\\\nCOPY rootfs/ /" web/Dockerfile
                   # Workaround 5765 issues: https://github.com/jitsi/docker-jitsi-meet/issues/1018
                   # Update the configuration
                   if ! grep "client\-proxy" jicofo/rootfs/defaults/jicofo.conf >/dev/null; then
