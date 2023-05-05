@@ -43,7 +43,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-8319
+    default: stable-8615
     #default: master
 
   # Default 0 is autodetect (using the MTU from the default route's NIC)
