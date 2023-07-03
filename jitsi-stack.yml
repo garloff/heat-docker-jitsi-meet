@@ -353,7 +353,7 @@ resources:
                   curl -LO https://github.com/docker/buildx/releases/download/v0.11.0/buildx-v0.11.0.linux-amd64
                   mv buildx-v0.11.0.linux-amd64 ~/.docker/cli-plugins/docker-buildx
                   chmod +x ~/.docker/cli-plugins/docker-buildx
-                  sed -i 's@,linux/arm64@@g' Makefile
+                  sed -i -e 's@,linux/arm64@@g' -e 's/ \-\-push//g' Makefile
                   make buildx-all JITSI_BUILD=stable JITSI_RELEASE=stable
             path: /root/build-jitsi.sh
             permissions: '0700'
