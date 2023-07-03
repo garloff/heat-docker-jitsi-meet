@@ -354,7 +354,7 @@ resources:
                   mv buildx-v0.11.0.linux-amd64 ~/.docker/cli-plugins/docker-buildx
                   chmod +x ~/.docker/cli-plugins/docker-buildx
                   sed -i -e 's@,linux/arm64@@g' -e 's/ \-\-push//g' Makefile
-                  make buildx-all JITSI_BUILD=stable JITSI_RELEASE=stable
+                  make buildx-all JITSI_BUILD=stable JITSI_RELEASE=latest
             path: /root/build-jitsi.sh
             permissions: '0700'
           - content:
