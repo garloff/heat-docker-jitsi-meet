@@ -22,6 +22,7 @@ cd /root
 
 DCVER=$(getver docker-compose.yml)
 
+adjustver "$DCVER" jibri.yml
 adjustver "$DCVER" jigasi.yml
 adjustver "$DCVER" etherpad.yml
 

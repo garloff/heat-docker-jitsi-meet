@@ -237,6 +237,11 @@ parameters:
     type: boolean
     default: false
 
+  # Enable jibri
+  enable_jibri:
+    type: boolean
+    default: false
+
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
 ##########
@@ -335,8 +340,8 @@ resources:
                   if ! grep "client\-proxy" jicofo/rootfs/defaults/jicofo.conf >/dev/null; then
                     sed -i -E '/^\s+disable-certificate-verification = true/a \\tclient-proxy = "focus.{{ .Env.XMPP_DOMAIN }}"' jicofo/rootfs/defaults/jicofo.conf
                   fi
-                  # Replace tag - by default, it is "stable-5765" but we want to use "latest", which is the one built by Makefile
-                  sed -i 's/:stable-[5678][0-9-]*/:latest/' docker-compose.yml
+                  # Replace tag - by default, it is "stable-XXXX" but we want to use "latest", which is the one built by Makefile
+                  for nm in docker-compose.yml jigasi.yml jibri.yml; do sed -i 's/:\-stable\-[5-9][0-9-]*/:latest/' $nm; done
                   # End workarounds
                   # jvbMaxmem tweaks
                   JVBMM=tweak_jvbMaxmem
@@ -382,7 +387,7 @@ resources:
                   export HOME=/$USER
                   cd ~/docker-jitsi-meet
 
-                  cp -p docker-compose.yml etherpad.yml jigasi.yml ~
+                  cp -p docker-compose.yml etherpad.yml jigasi.yml jibri.yml ~
                   cp -p env.example ~/.env
                   cd ..
                   sed -i 's@etherpad/etherpad:1.8.6@etherpad/etherpad:latest@' etherpad.yml
@@ -473,6 +478,7 @@ resources:
                   tweak_opusRed: {get_param: tweak_opusRed}
                   enable_stereo: {get_param: enable_stereo}
                   enable_etherpad: {get_param: enable_etherpad}
+                  enable_jibri: {get_param: enable_jibri}
                   disable_screenshare_framerate: {get_param: disable_screenshare_framerate}
                 template: |
                   #!/usr/bin/env bash
@@ -484,6 +490,9 @@ resources:
                   DFILES="-f ~/docker-compose.yml"
                   if test -n "jigasi_sip_uri"; then
                     DFILES="$DFILES -f ~/jigasi.yml"
+                  fi
+                  if test "enable_jibri" = "True"; then
+                    DFILES="$DFILES -f ~/jibri.yml"
                   fi
                   if test "enable_etherpad" = "True"; then
                     DFILES="$DFILES -f ~/etherpad.yml"
