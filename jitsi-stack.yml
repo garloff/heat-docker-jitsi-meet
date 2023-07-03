@@ -43,7 +43,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-8615
+    default: stable-8719
     #default: master
 
   # Default 0 is autodetect (using the MTU from the default route's NIC)
@@ -347,7 +347,14 @@ resources:
                     echo -e "# Max mem for JVB (64bit Linux Java -Xmx), default 3072m\nVIDEOBRIDGE_MAX_MEMORY=${JVBMM}m\n" > jvb/rootfs/usr/share/jitsi-videobridge/lib/videobridge.rc
                     echo -e "# Enable this for debugging\n# VIDEOBRIDGE_DEBUG_OPTIONS=\"-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8000\"" >> jvb/rootfs/usr/share/jitsi-videobridge/lib/videobridge.rc
                   fi
-                  make JITSI_RELEASE=stable
+                  #make JITSI_RELEASE=stable
+                  # Use buildx build procedure
+                  mkdir -p ~/.docker/cli-plugins
+                  curl -LO https://github.com/docker/buildx/releases/download/v0.11.0/buildx-v0.11.0.linux-amd64
+                  mv buildx-v0.11.0.linux-amd64 ~/.docker/cli-plugins/docker-buildx
+                  chmod +x ~/.docker/cli-plugins/docker-buildx
+                  sed -i -e 's@,linux/arm64@@g' -e 's/ \-\-push//g' Makefile
+                  make buildx-all JITSI_BUILD=stable JITSI_RELEASE=latest
             path: /root/build-jitsi.sh
             permissions: '0700'
           - content:
