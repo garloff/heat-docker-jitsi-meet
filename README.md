@@ -97,7 +97,7 @@ After you have deployed the stack successfully, you can connect to the endpoint 
 defined in ``public_url`` (defaults to https://``public_domain``:``public_port``/).
 In the configured setup, guests can join open rooms, but rooms can only be activated
 by authenticated users -- the one that is defined in your ``jitsi-user-USERNM.yml``
-file. Use ``USERNM@meet.jitsi`` here.
+file. Use ``USERNM`` here. (The domain ``@meet.jitsi`` is implied here.)
 
 You can access the server afterwards with ``ssh -i jitsi-USERNM.ssh linux@FIP``,
 where you replace ``USERNM`` with the username used above, ``FIP`` with the floating
@@ -107,7 +107,7 @@ so ``ssh -i jitsi-USERNM.ssh linux@public_domain``.)
 
 Inside the VM, you can do useful things such as looking at the docker logs or
 becoming root and using
-``docker exec -it root_prosody_1 prosodyctl --config /config/prosody.cfg.lua adduser USERNM2@meet.jitsi``
+``docker exec -it root-prosody-1 prosodyctl --config /config/prosody.cfg.lua adduser USERNM2 meet.jitsi PASSWD2``
 to deploy another authenticated user that can create rooms.
 
 However, it is not recommended to login to container and do changes -- they are not persistent and
