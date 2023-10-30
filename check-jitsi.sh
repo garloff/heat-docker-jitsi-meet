@@ -43,5 +43,5 @@ it appears that your Jitsi Service at https://$PUBDOM:$PUBPORT/
 does not currently work. You may want to consider taking action.
 
 -- 
-Your friendly Jitsi Monitor <jitsi@$(hostname)>" | sendmail -f jitsi@$(hostname) $WARNMAIL
+Your friendly Jitsi Monitor <jitsi@$(hostname)>" | /usr/sbin/sendmail -f jitsi@$(hostname) $WARNMAIL
 fi
