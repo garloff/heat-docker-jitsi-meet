@@ -8,7 +8,7 @@ parameters:
     type: string
     constraints:
       - custom_constraint: glance.image
-    default: openSUSE 15.4
+    default: openSUSE 15.5
 
   flavor_jitsi:
     type: string
