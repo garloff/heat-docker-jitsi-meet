@@ -604,10 +604,10 @@ resources:
                   if test -n "xmpp_domain"; then XMPP_DOMAIN=xmpp_domain; else XMPP_DOMAIN=meet.jitsi; fi
                   USERS=(jitsi_user); PASSW=(jitsi_password)
                   for idx in $(seq 0 $((${#USERS[*]}-1))); do
-                    docker exec root_prosody_1 prosodyctl --config /config/prosody.cfg.lua register ${USERS[$idx]} $XMPP_DOMAIN ${PASSW[$idx]}
+                    docker exec root-prosody-1 prosodyctl --config /config/prosody.cfg.lua register ${USERS[$idx]} $XMPP_DOMAIN ${PASSW[$idx]}
                   done
                   # Restart nginx in web container to make SSL/height changes effective
-                  #docker restart root_web_1
+                  #docker restart root-web-1
                   NGINX=$(ps -x | grep "nginx: master" | grep -v grep | awk '{ print $1; }')
                   kill $NGINX
                   # Dial-In
@@ -633,7 +633,7 @@ resources:
                     # Wait 7mins for room opening
                     echo "org.jitsi.jigasi.JVB_INVITE_TIMEOUT=420000" >> $PROP
                     # And restart jigasi container
-                    docker restart root_jigasi_1
+                    docker restart root-jigasi-1
                   fi
                   # Signal completion
                   # Note: Optionally replace internal with public endpoint (heat-public-ep.sh)
