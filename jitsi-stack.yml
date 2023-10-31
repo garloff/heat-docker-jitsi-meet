@@ -596,6 +596,7 @@ resources:
                   if test "enable_stereo" != 0; then
                     echo "config.testing.audioQuality.stereo = true;" >> $WEBCFG
                   fi
+                  sed -i 's@^config.desktopSharingFrameRate.*/config.desktopSharingFrameRate: { min: 2, max: 10 };@' $WEBCFG
                   if test "disable_screenshare_framerate" != 0; then
                     sed -i 's@^config.desktopSharingFrameRate@//config.desktopSharingFrameRate@' $WEBCFG
                   fi
