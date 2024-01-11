@@ -596,6 +596,9 @@ resources:
                     echo "config.testing.enableAv1 = true;" >> $WEBCFG
                     echo "jicofo.codec.video.av1.enabled = true;" >> $WEBCFG
                   fi
+                  if test -n "av1_bandwidth" -o -n "vp9_bandwidth" -o -n "vp8_bandwidth"; then
+                    echo "config.videoQuality.maxBitratesVideo = {};" >> $WEBCFG
+                  fi
                   if test -n "av1_bandwidth"; then
                     echo "av1_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.AV1 = { low: \1000, standard: \2000, high: \3000 };@' >> $WEBCFG
                   fi
