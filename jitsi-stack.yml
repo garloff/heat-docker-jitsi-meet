@@ -591,9 +591,9 @@ resources:
                     echo "config.p2p.preferredCodec = 'VP9';" >> $WEBCFG
                   fi
                   if test "enable_av1" != "0"; then
-                    echo "config.p2p.codecPreferenceOrder=[‘AV1’,‘VP9’,‘VP8’,‘H264’];" >> $WEBCFG
-                    echo "config.videoQuality.codecPreferenceOrder=[‘AV1’,‘VP9’,‘VP8’,‘H264’];" >> $WEBCFG
-                    echo "config.testing.enableAv1=true;" >> $WEBCFG
+                    echo "config.p2p.codecPreferenceOrder = ['AV1', 'VP9', 'VP8', 'H264'];" >> $WEBCFG
+                    echo "config.videoQuality.codecPreferenceOrder = ['AV1', 'VP9', 'VP8', 'H264'];" >> $WEBCFG
+                    echo "config.testing.enableAv1 = true;" >> $WEBCFG
                     echo "jicofo.codec.video.av1.enabled = true;" >> $WEBCFG
                   fi
                   if test -n "av1_bandwidth"; then
