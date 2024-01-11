@@ -590,7 +590,7 @@ resources:
                     echo "config.videoQuality.preferredCodec = 'VP9';" >> $WEBCFG
                     echo "config.p2p.preferredCodec = 'VP9';" >> $WEBCFG
                   fi
-                  if test "tweak_opusMaxAvgRate" != 0 -o "tweak_opusRed" != 0 -o "enable_stereo" != 0 -o "enable_av1" != 0; then
+                  if test "tweak_opusMaxAvgRate" != 0 -o "tweak_opusRed" != "False" -o "enable_stereo" != 0 -o "enable_av1" != 0; then
                     echo "config.testing = {};" >> $WEBCFG
                     echo "config.testing.audioQuality = {};" >> $WEBCFG
                   fi
@@ -621,8 +621,8 @@ resources:
                   if test "tweak_opusMaxAvgRate" != 0; then
                     echo "config.testing.audioQuality.opusMaxAverageBitrate = tweak_opusMaxAvgRate000;" >> $WEBCFG
                   fi
-                   if test "tweak_opusRed" != "false"; then
-                    echo "config.testing.audioQuality.enableOpusRed = tweak_opusRed;" >> $WEBCFG
+                   if test "tweak_opusRed" != "False"; then
+                     echo "config.testing.audioQuality.enableOpusRed = $(echo 'tweak_opusRed' | tr A-Z a-z);" >> $WEBCFG
                   fi
                   if test "enable_stereo" != 0; then
                     echo "config.testing.audioQuality.stereo = true;" >> $WEBCFG
