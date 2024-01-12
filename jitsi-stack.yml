@@ -587,13 +587,16 @@ resources:
                     echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
                     echo " ];" >> $WEBCFG
                   fi
-                  if test "enable_vp9" != "0"; then
+                  if test "enable_av1" != "0"; then
+                    echo "config.videoQuality.preferredCodec = 'AV1';" >> $WEBCFG
+                    echo "config.p2p.preferredCodec = 'AV1';" >> $WEBCFG
+                  elif test "enable_vp9" != "0"; then
                     #sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*\$@\1\2'VP9',@" $WEBCFG
                     echo "config.videoQuality.preferredCodec = 'VP9';" >> $WEBCFG
                     echo "config.p2p.preferredCodec = 'VP9';" >> $WEBCFG
                   fi
                   if test "tweak_opusMaxAvgRate" != 0 -o "tweak_opusRed" != "False" -o "enable_stereo" != 0 -o "enable_av1" != 0; then
-                    echo "config.testing = {};" >> $WEBCFG
+                    echo "//config.testing = {};" >> $WEBCFG
                     echo "config.testing.audioQuality = {};" >> $WEBCFG
                   fi
                   if test "enable_av1" != "0"; then
