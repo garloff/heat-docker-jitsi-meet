@@ -15,7 +15,7 @@ parameters:
     constraints:
       - custom_constraint: nova.flavor
     #OTC default: s2.large.4
-    default: SCS-2V:4:10
+    default: SCS-2V-4-10
 
   availability_zone:
     type: string
@@ -43,7 +43,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-8960-1
+    default: stable-9111
     #default: stable
 
   # Default 0 is autodetect (using the MTU from the default route's NIC)
