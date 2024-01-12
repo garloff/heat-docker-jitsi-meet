@@ -15,7 +15,7 @@ parameters:
     constraints:
       - custom_constraint: nova.flavor
     #OTC default: s2.large.4
-    default: SCS-2V:4:10
+    default: SCS-2V-4-10
 
   availability_zone:
     type: string
@@ -43,8 +43,8 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-8960-1
-    #default: master
+    default: stable-9111
+    #default: stable
 
   # Default 0 is autodetect (using the MTU from the default route's NIC)
   # Any other number (e.g. 1440) overrides this.
@@ -163,17 +163,27 @@ parameters:
     type: number
     default: 0
 
+  # Enable AV1 (numeric here, will be transformed to boolean, enables VP9 as well)
+  enable_av1:
+    type: number
+    default: 0
+
   # Enable VP9 (numeric here, will be transformed to boolean)
   enable_vp9:
     type: number
     default: 0
 
-  # tweak VP9 bandwidth in kbps low, std, hi: 100, 300, 1200
+  # tweak AV1 bandwidth in kbps low, std, hi, e.g.: 120, 320, 960
+  av1_bandwidth:
+    type: string
+    default: ""
+
+  # tweak VP9 bandwidth in kbps low, std, hi, e.g.: 150, 400, 1200
   vp9_bandwidth:
     type: string
     default: ""
 
-  # tweak VP8 bandwidth in kbps low, std, hi: 200, 500, 1500
+  # tweak VP8 bandwidth in kbps low, std, hi, e.g.: 200, 500, 1500
   vp8_bandwidth:
     type: string
     default: ""
@@ -288,6 +298,12 @@ resources:
           - content: {get_file: jvb-xmpp-domain.diff}
             path: /root/jvb-xmpp-domain.diff
             permissions: '0644'
+          - content: {get_file: fixup-welcome.sed}
+            path: /root/fixup-welcome.sed
+            permissions: '0644'
+          - content: {get_file: fixup-transcription.sed}
+            path: /root/fixup-transcription.sed
+            permissions: '0644'
           - content:
               str_replace:
                 params:
@@ -381,7 +397,9 @@ resources:
                   jigasi_sip_port: {get_param: jigasi_sip_port}
                   jigasi_port_min: {get_param: jigasi_port_min}
                   jigasi_port_max: {get_param: jigasi_port_max}
+                  enable_av1: {get_param: enable_av1}
                   enable_vp9: {get_param: enable_vp9}
+                  tweak_opusRed: {get_param: tweak_opusRed}
                   enable_websocket: {get_param: enable_websocket}
                   enable_prejoin: {get_param: enable_prejoin}
                   enable_etherpad: {get_param: enable_etherpad}
@@ -411,6 +429,7 @@ resources:
                   sed -i "s@^#PUBLIC_URL=.*\$@PUBLIC_URL=$PUBLIC_URL@" .env
                   IP=$(ip addr show eth0 | grep 'inet ' | sed 's@^ *inet \([0-9\.]*\)/\([0-9]*\) .*$@\1@')
                   sed -i "s@^#DOCKER_HOST_ADDRESS=.*\$@#DOCKER_HOST_ADDRESS=$IP\nDOCKER_HOST_ADDRESS=floating_ip@" .env
+                  sed -i "s@^#JVB_ADVERTISE_IPS=.*\$@#JVB_ADVERTISE_IPS=$IP,floating_ip\nJVB_ADVERTISE_IPS=floating_ip@" .env
                   if test -n "letsenc_mail"; then
                     sed -i 's/^#LETSENCRYPT_EMAIL=.*$/LETSENCRYPT_EMAIL=letsenc_mail/' .env
                     LETSENC_DOM="letsenc_domain"
@@ -426,7 +445,8 @@ resources:
                   sed -i 's@^#ENABLE_GUESTS@ENABLE_GUESTS@' .env
                   sed -i 's@^#*ENABLE_PREJOIN_PAGE=.*@ENABLE_PREJOIN_PAGE=enable_prejoin@' .env
                   sed -i 's@^#AUTH_TYPE=@AUTH_TYPE=@' .env
-                  sed -i 's@^JVB_STUN_SERVERS=.*$@JVB_STUN_SERVERS=stun_servers@' .env
+                  #sed -i 's@^JVB_STUN_SERVERS=.*$@JVB_STUN_SERVERS=stun_servers@' .env
+                  echo "JVB_STUN_SERVERS=stun_servers" >> .env
                   # JIGASI
                   JIGASI_SIP_URI="jigasi_sip_uri"
                   if test -n "$JIGASI_SIP_URI"; then
@@ -440,15 +460,16 @@ resources:
                     sed -i 's@^JIGASI_PORT_MIN=.*$@JIGASI_PORT_MIN=jigasi_port_min@' .env
                     sed -i 's@^JIGASI_PORT_MAX=.*$@JIGASI_PORT_MAX=jigasi_port_max@' .env
                   fi
-                  # Disable Websockets
+                  # En/Disable Websockets
                   sed -i 's/^ENABLE_XMPP_WEBSOCKET=/#ENABLE_XMPP_WEBSOCKET=/' .env
                   sed -i 's/^ENABLE_COLIBRI_WEBSOCKET=/#ENABLE_COLIBRI_WEBSOCKET=/' .env
                   echo "ENABLE_XMPP_WEBSOCKET=enable_websocket" >> .env
-                  #echo "ENABLE_COLIBRI_WEBSOCKET=enable_websocket" >> .env
-                  if test "enable_websocket" = "0"; then
-                    echo "ENABLE_SCTP=1" >> .env
-                  fi
-                  if test "enable_vp9" != "0"; then echo "ENABLE_CODEC_VP9=true" >> .env; fi
+                  echo "ENABLE_COLIBRI_WEBSOCKET=enable_websocket" >> .env
+                  if test "enable_websocket" = "0"; then echo "ENABLE_SCTP=1" >> .env
+                  else echo "ENABLE_SCTP=0" >> .env; fi
+                  if test "enable_av1" != "0"; then echo -e "ENABLE_CODEC_VP9=true\nENABLE_CODEC_AV1=true\nTESTING_AV1_SUPPORT=true" >> .env;
+                  elif test "enable_vp9" != "0"; then echo "ENABLE_CODEC_VP9=true" >> .env; fi
+                  if test "tweak_opusRed" != "False"; then echo "ENABLE_CODEC_OPUS_RED=true" >> .env; fi
                   DIS_HARV=$(echo disable_tcp_harvester | tr A-Z a-z)
                   sed -i "s/\(JVB_TCP_HARVESTER_DISABLED=\).*/\1$DIS_HARV/" .env
                   if test "enable_etherpad" = "True"; then
@@ -478,7 +499,9 @@ resources:
                   jigasi_default_room: {get_param: jigasi_default_room}
                   stun_servers: {get_param: stun_servers}
                   use_stun_p2p: {get_param: use_stun_p2p}
+                  enable_av1: {get_param: enable_av1}
                   enable_vp9: {get_param: enable_vp9}
+                  av1_bandwidth: {get_param: av1_bandwidth}
                   vp9_bandwidth: {get_param: vp9_bandwidth}
                   vp8_bandwidth: {get_param: vp8_bandwidth}
                   tweak_opusMaxAvgRate: {get_param: tweak_opusMaxAvgRate}
@@ -525,6 +548,8 @@ resources:
                   fi
                   sleep 1
                   cp -p $WEBCFG $WEBCFG.orig
+                  # Apply fixes
+                  sed -f fixup-welcome.sed -f fixup-transcription.sed -i $WEBCFG
                   # Does no longer work in newer templates
                   ASPECT="16/9"
                   if test -n "tweak_aspectRatio"; then
@@ -570,10 +595,28 @@ resources:
                     echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
                     echo " ];" >> $WEBCFG
                   fi
-                  if test "enable_vp9" != "0"; then
+                  if test "enable_av1" != "0"; then
+                    echo "config.videoQuality.preferredCodec = 'AV1';" >> $WEBCFG
+                    echo "config.p2p.preferredCodec = 'AV1';" >> $WEBCFG
+                  elif test "enable_vp9" != "0"; then
                     #sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*\$@\1\2'VP9',@" $WEBCFG
                     echo "config.videoQuality.preferredCodec = 'VP9';" >> $WEBCFG
                     echo "config.p2p.preferredCodec = 'VP9';" >> $WEBCFG
+                  fi
+                  if test "tweak_opusMaxAvgRate" != 0 -o "tweak_opusRed" != "False" -o "enable_stereo" != 0 -o "enable_av1" != 0; then
+                    echo "//config.testing = {};" >> $WEBCFG
+                    echo "config.testing.audioQuality = {};" >> $WEBCFG
+                  fi
+                  if test "enable_av1" != "0"; then
+                    echo "config.p2p.codecPreferenceOrder = ['AV1', 'VP9', 'VP8', 'H264'];" >> $WEBCFG
+                    echo "config.videoQuality.codecPreferenceOrder = ['AV1', 'VP9', 'VP8', 'H264'];" >> $WEBCFG
+                    echo "config.testing.enableAv1 = true;" >> $WEBCFG
+                  fi
+                  if test -n "av1_bandwidth" -o -n "vp9_bandwidth" -o -n "vp8_bandwidth"; then
+                    echo "config.videoQuality.maxBitratesVideo = {};" >> $WEBCFG
+                  fi
+                  if test -n "av1_bandwidth"; then
+                    echo "av1_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.AV1 = { low: \1000, standard: \2000, high: \3000 };@' >> $WEBCFG
                   fi
                   if test -n "vp9_bandwidth"; then
                     echo "vp9_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP9 = { low: \1000, standard: \2000, high: \3000 };@' >> $WEBCFG
@@ -590,12 +633,13 @@ resources:
                   if test "tweak_opusMaxAvgRate" != 0; then
                     echo "config.testing.audioQuality.opusMaxAverageBitrate = tweak_opusMaxAvgRate000;" >> $WEBCFG
                   fi
-                   if test "tweak_opusRed" != "false"; then
-                    echo "config.testing.audioQuality.enableOpusRed = tweak_opusRed;" >> $WEBCFG
+                   if test "tweak_opusRed" != "False"; then
+                     echo "config.testing.audioQuality.enableOpusRed = $(echo 'tweak_opusRed' | tr A-Z a-z);" >> $WEBCFG
                   fi
                   if test "enable_stereo" != 0; then
                     echo "config.testing.audioQuality.stereo = true;" >> $WEBCFG
                   fi
+                  sed -i 's@^config.desktopSharingFrameRate.*/config.desktopSharingFrameRate: { min: 2, max: 10 };@' $WEBCFG
                   if test "disable_screenshare_framerate" != 0; then
                     sed -i 's@^config.desktopSharingFrameRate@//config.desktopSharingFrameRate@' $WEBCFG
                   fi
