@@ -298,6 +298,12 @@ resources:
           - content: {get_file: jvb-xmpp-domain.diff}
             path: /root/jvb-xmpp-domain.diff
             permissions: '0644'
+          - content: {get_file: fixup-welcome.sed}
+            path: /root/fixup-welcome.sed
+            permissions: '0644'
+          - content: {get_file: fixup-transcription.sed}
+            path: /root/fixup-transcription.sed
+            permissions: '0644'
           - content:
               str_replace:
                 params:
@@ -542,6 +548,8 @@ resources:
                   fi
                   sleep 1
                   cp -p $WEBCFG $WEBCFG.orig
+                  # Apply fixes
+                  sed -f fixup-welcome.sed -f fixup-transcription.sed -i $WEBCFG
                   # Does no longer work in newer templates
                   ASPECT="16/9"
                   if test -n "tweak_aspectRatio"; then
