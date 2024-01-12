@@ -422,7 +422,7 @@ resources:
                   sed -i "s@^#PUBLIC_URL=.*\$@PUBLIC_URL=$PUBLIC_URL@" .env
                   IP=$(ip addr show eth0 | grep 'inet ' | sed 's@^ *inet \([0-9\.]*\)/\([0-9]*\) .*$@\1@')
                   sed -i "s@^#DOCKER_HOST_ADDRESS=.*\$@#DOCKER_HOST_ADDRESS=$IP\nDOCKER_HOST_ADDRESS=floating_ip@" .env
-                  sed -i "s@^#JVB_ADVERTISE_IPS=.*\$@JVB_ADVERTISE_IPS=$IP,floating_ip@" .env
+                  sed -i "s@^#JVB_ADVERTISE_IPS=.*\$@#JVB_ADVERTISE_IPS=$IP,floating_ip@" .env
                   if test -n "letsenc_mail"; then
                     sed -i 's/^#LETSENCRYPT_EMAIL=.*$/LETSENCRYPT_EMAIL=letsenc_mail/' .env
                     LETSENC_DOM="letsenc_domain"
