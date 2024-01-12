@@ -393,6 +393,7 @@ resources:
                   jigasi_port_max: {get_param: jigasi_port_max}
                   enable_av1: {get_param: enable_av1}
                   enable_vp9: {get_param: enable_vp9}
+                  tweak_opusRed: {get_param: tweak_opusRed}
                   enable_websocket: {get_param: enable_websocket}
                   enable_prejoin: {get_param: enable_prejoin}
                   enable_etherpad: {get_param: enable_etherpad}
@@ -422,7 +423,7 @@ resources:
                   sed -i "s@^#PUBLIC_URL=.*\$@PUBLIC_URL=$PUBLIC_URL@" .env
                   IP=$(ip addr show eth0 | grep 'inet ' | sed 's@^ *inet \([0-9\.]*\)/\([0-9]*\) .*$@\1@')
                   sed -i "s@^#DOCKER_HOST_ADDRESS=.*\$@#DOCKER_HOST_ADDRESS=$IP\nDOCKER_HOST_ADDRESS=floating_ip@" .env
-                  sed -i "s@^#JVB_ADVERTISE_IPS=.*\$@#JVB_ADVERTISE_IPS=$IP,floating_ip@" .env
+                  sed -i "s@^#JVB_ADVERTISE_IPS=.*\$@#JVB_ADVERTISE_IPS=$IP,floating_ip\nJVB_ADVERTISE_IPS=floating_ip@" .env
                   if test -n "letsenc_mail"; then
                     sed -i 's/^#LETSENCRYPT_EMAIL=.*$/LETSENCRYPT_EMAIL=letsenc_mail/' .env
                     LETSENC_DOM="letsenc_domain"
@@ -438,7 +439,8 @@ resources:
                   sed -i 's@^#ENABLE_GUESTS@ENABLE_GUESTS@' .env
                   sed -i 's@^#*ENABLE_PREJOIN_PAGE=.*@ENABLE_PREJOIN_PAGE=enable_prejoin@' .env
                   sed -i 's@^#AUTH_TYPE=@AUTH_TYPE=@' .env
-                  sed -i 's@^JVB_STUN_SERVERS=.*$@JVB_STUN_SERVERS=stun_servers@' .env
+                  #sed -i 's@^JVB_STUN_SERVERS=.*$@JVB_STUN_SERVERS=stun_servers@' .env
+                  echo "JVB_STUN_SERVERS=stun_servers" >> .env
                   # JIGASI
                   JIGASI_SIP_URI="jigasi_sip_uri"
                   if test -n "$JIGASI_SIP_URI"; then
@@ -452,16 +454,16 @@ resources:
                     sed -i 's@^JIGASI_PORT_MIN=.*$@JIGASI_PORT_MIN=jigasi_port_min@' .env
                     sed -i 's@^JIGASI_PORT_MAX=.*$@JIGASI_PORT_MAX=jigasi_port_max@' .env
                   fi
-                  # Disable Websockets
+                  # En/Disable Websockets
                   sed -i 's/^ENABLE_XMPP_WEBSOCKET=/#ENABLE_XMPP_WEBSOCKET=/' .env
                   sed -i 's/^ENABLE_COLIBRI_WEBSOCKET=/#ENABLE_COLIBRI_WEBSOCKET=/' .env
                   echo "ENABLE_XMPP_WEBSOCKET=enable_websocket" >> .env
-                  #echo "ENABLE_COLIBRI_WEBSOCKET=enable_websocket" >> .env
-                  if test "enable_websocket" = "0"; then
-                    echo "ENABLE_SCTP=1" >> .env
-                  fi
+                  echo "ENABLE_COLIBRI_WEBSOCKET=enable_websocket" >> .env
+                  if test "enable_websocket" = "0"; then echo "ENABLE_SCTP=1" >> .env
+                  else echo "ENABLE_SCTP=0" >> .env; fi
                   if test "enable_av1" != "0"; then echo -e "ENABLE_CODEC_VP9=true\nENABLE_CODEC_AV1=true" >> .env;
                   elif test "enable_vp9" != "0"; then echo "ENABLE_CODEC_VP9=true" >> .env; fi
+                  if test "tweak_opusRed" != "False"; then echo "ENABLE_CODEC_OPUSRED=true" >> .env; fi
                   DIS_HARV=$(echo disable_tcp_harvester | tr A-Z a-z)
                   sed -i "s/\(JVB_TCP_HARVESTER_DISABLED=\).*/\1$DIS_HARV/" .env
                   if test "enable_etherpad" = "True"; then
@@ -598,7 +600,6 @@ resources:
                     echo "config.p2p.codecPreferenceOrder = ['AV1', 'VP9', 'VP8', 'H264'];" >> $WEBCFG
                     echo "config.videoQuality.codecPreferenceOrder = ['AV1', 'VP9', 'VP8', 'H264'];" >> $WEBCFG
                     echo "config.testing.enableAv1 = true;" >> $WEBCFG
-                    echo "//jicofo.codec.video.av1.enabled = true;" >> $WEBCFG
                   fi
                   if test -n "av1_bandwidth" -o -n "vp9_bandwidth" -o -n "vp8_bandwidth"; then
                     echo "config.videoQuality.maxBitratesVideo = {};" >> $WEBCFG
