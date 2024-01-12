@@ -467,9 +467,9 @@ resources:
                   echo "ENABLE_COLIBRI_WEBSOCKET=enable_websocket" >> .env
                   if test "enable_websocket" = "0"; then echo "ENABLE_SCTP=1" >> .env
                   else echo "ENABLE_SCTP=0" >> .env; fi
-                  if test "enable_av1" != "0"; then echo -e "ENABLE_CODEC_VP9=true\nENABLE_CODEC_AV1=true" >> .env;
+                  if test "enable_av1" != "0"; then echo -e "ENABLE_CODEC_VP9=true\nENABLE_CODEC_AV1=true\nTESTING_AV1_SUPPORT=true" >> .env;
                   elif test "enable_vp9" != "0"; then echo "ENABLE_CODEC_VP9=true" >> .env; fi
-                  if test "tweak_opusRed" != "False"; then echo "ENABLE_CODEC_OPUSRED=true" >> .env; fi
+                  if test "tweak_opusRed" != "False"; then echo "ENABLE_CODEC_OPUS_RED=true" >> .env; fi
                   DIS_HARV=$(echo disable_tcp_harvester | tr A-Z a-z)
                   sed -i "s/\(JVB_TCP_HARVESTER_DISABLED=\).*/\1$DIS_HARV/" .env
                   if test "enable_etherpad" = "True"; then
