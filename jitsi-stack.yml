@@ -530,6 +530,7 @@ resources:
                   jigasi_default_room: {get_param: jigasi_default_room}
                   stun_servers: {get_param: stun_servers}
                   use_stun_p2p: {get_param: use_stun_p2p}
+                  turn_server: {get_param: turn_server}
                   enable_av1: {get_param: enable_av1}
                   enable_vp9: {get_param: enable_vp9}
                   av1_bandwidth: {get_param: av1_bandwidth}
@@ -627,6 +628,7 @@ resources:
                       echo -n "stun_servers","turn_server" | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
                     else
                       echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
+                    fi
                     echo " ];" >> $WEBCFG
                   fi
                   if test "enable_av1" != "0"; then
