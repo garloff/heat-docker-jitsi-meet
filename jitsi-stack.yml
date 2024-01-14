@@ -120,7 +120,22 @@ parameters:
   # Use STUN servers also for p2p
   use_stun_p2p:
     type: number
-    default: 0
+    default: 1
+
+  # You may set this to turn password, e.g. free
+  turn_credentials:
+    type: string
+    default: ""
+
+  # You can set this to host:port, e.g. freestun.net:3479
+  turn_server:
+    type: string
+    default: ""
+
+  # You can set this to host:port, e.g. freestun.net:5350
+  turns_server:
+    type: string
+    default: ""
 
   # Fill these vars if you want to set up a bridge to SIP
   jigasi_sip_uri:
@@ -390,6 +405,9 @@ resources:
                   letsenc_domain: {get_param: letsenc_domain}
                   letsenc_http_port: {get_param: letsenc_http_port}
                   stun_servers: {get_param: stun_servers}
+                  turn_credentials: {get_param: turn_credentials}
+                  turn_server: {get_param: turn_server}
+                  turns_server: {get_param: turns_server}
                   jigasi_sip_uri: {get_param: jigasi_sip_uri}
                   jigasi_sip_server: {get_param: jigasi_sip_server}
                   jigasi_sip_password: {get_param: jigasi_sip_password}
@@ -476,6 +494,19 @@ resources:
                     sed -i 's/^#ETHERPAD_URL_BASE/ETHERPAD_URL_BASE/' .env
                     sed -i "s@^#ETHERPAD_PUBLIC_URL=.*\$@ETHERPAD_PUBLIC_URL=${PUBLIC_URL}etherpad/p/@" .env
                     sed -i 's/ETHERPAD_DEFAULT_PAD_TEXT=.*$/ETHERPAD_DEFAULT_PAD_TEXT="Ephemeral(!) Web Chat.\n"/' .env
+                  fi
+                  if test -n "turn_credentials"; then
+                    echo "TURN_CREDENTIALS=\"turn_credentials\"" >> .env
+                  fi
+                  if test -n "turn_server"; then
+                    TURN_SRV="turn_server"
+                    echo "TURN_HOST=${TURN_SRV%:*}" >> .env
+                    echo "TURN_PORT=${TURN_SRV##*:}" >> .env
+                  fi
+                  if test -n "turns_server"; then
+                    TURNS_SRV="turns_server"
+                    echo "TURNS_HOST=${TURNS_SRV%:*}" >> .env
+                    echo "TURNS_PORT=${TURNS_SRV##*:}" >> .env
                   fi
             path: /root/config-env.sh
             permissions: '0700'
@@ -592,7 +623,10 @@ resources:
                   fi
                   if test "use_stun_p2p" != "0"; then
                     echo -n "config.p2p.stunServers = [" >> $WEBCFG
-                    echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
+                    if test -n "turn_server"; then
+                      echo -n "stun_servers","turn_server" | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
+                    else
+                      echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
                     echo " ];" >> $WEBCFG
                   fi
                   if test "enable_av1" != "0"; then
