@@ -530,7 +530,9 @@ resources:
                   jigasi_default_room: {get_param: jigasi_default_room}
                   stun_servers: {get_param: stun_servers}
                   use_stun_p2p: {get_param: use_stun_p2p}
+                  turn_credentials: {get_param: turn_credentials}
                   turn_server: {get_param: turn_server}
+                  turns_server: {get_param: turns_server}
                   enable_av1: {get_param: enable_av1}
                   enable_vp9: {get_param: enable_vp9}
                   av1_bandwidth: {get_param: av1_bandwidth}
@@ -624,10 +626,15 @@ resources:
                   fi
                   if test "use_stun_p2p" != "0"; then
                     echo -n "config.p2p.stunServers = [" >> $WEBCFG
+                    echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
+                    if test -n "turn_credentials"; then
+                      TURNCRED=", username: 'turn_credentials', password: 'turn_credentials'"
+                    fi
+                    if test -n "turns_server"; then
+                      echo -n "turns_server" | sed "s/\([^,]*\)/, { urls: 'turns:\1'$TURNCRED }/g" >> $WEBCFG
+                    fi
                     if test -n "turn_server"; then
-                      echo -n "stun_servers","turn_server" | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
-                    else
-                      echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
+                      echo -n "turn_server" | sed "s/\([^,]*\)/, { urls: 'turn:\1'$TURNCRED}/g" >> $WEBCFG
                     fi
                     echo " ];" >> $WEBCFG
                   fi
@@ -675,7 +682,7 @@ resources:
                   if test "enable_stereo" != 0; then
                     echo "config.testing.audioQuality.stereo = true;" >> $WEBCFG
                   fi
-                  sed -i 's@^config.desktopSharingFrameRate.*/config.desktopSharingFrameRate: { min: 2, max: 10 };@' $WEBCFG
+                  echo "config.desktopSharingFrameRate = { min: 2, max: 10 };" >> $WEBCFG
                   if test "disable_screenshare_framerate" != 0; then
                     sed -i 's@^config.desktopSharingFrameRate@//config.desktopSharingFrameRate@' $WEBCFG
                   fi
