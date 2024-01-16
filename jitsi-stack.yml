@@ -637,6 +637,12 @@ resources:
                       echo -n "turn_server" | sed "s/\([^,]*\)/, { urls: 'turn:\1'$TURNCRED}/g" >> $WEBCFG
                     fi
                     echo " ];" >> $WEBCFG
+                    if test -n "turn_server" -o -n "turns_server"; then
+                      echo "config.p2p.useStunTurn = true;" >> $$WEBCFG
+                    fi
+                  fi
+                  if test -n "turn_server" -o -n "turns_server"; then
+                    echo "config.useStunTurn = true;" >> $$WEBCFG
                   fi
                   if test "enable_av1" != "0"; then
                     echo "config.videoQuality.preferredCodec = 'AV1';" >> $WEBCFG
