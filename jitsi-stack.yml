@@ -628,7 +628,7 @@ resources:
                     echo -n "config.p2p.stunServers = [" >> $WEBCFG
                     echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
                     if test -n "turn_credentials"; then
-                      TURNCRED=", username: 'turn_credentials', password: 'turn_credentials'"
+                      TURNCRED=", username: 'turn_credentials', credential: 'turn_credentials'"
                     fi
                     if test -n "turns_server"; then
                       echo -n "turns_server" | sed "s/\([^,]*\)/, { urls: 'turns:\1'$TURNCRED }/g" >> $WEBCFG
