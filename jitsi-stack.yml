@@ -510,6 +510,7 @@ resources:
                     echo "TURNS_PORT=${TURNS_SRV##*:}" >> .env
                   fi
                   if test "disable_screenshare_framerate" != "0"; then
+                    # https://github.com/jitsi/docker-jitsi-meet/pull/1674
                     echo "DESKTOP_SHARING_FRAMERATE_AUTO=true" >> .env
                   else
                     echo "DESKTOP_SHARING_FRAMERATE_MIN=2" >> .env
