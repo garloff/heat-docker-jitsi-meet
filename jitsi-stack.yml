@@ -43,7 +43,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-9258
+    default: stable-9220-1
     #default: stable
 
   # Default 0 is autodetect (using the MTU from the default route's NIC)
@@ -425,6 +425,7 @@ resources:
                   enable_etherpad: {get_param: enable_etherpad}
                   floating_ip: {get_attr: [jitsi_floating_ip, floating_ip_address]}
                   disable_tcp_harvester: {get_param: disable_tcp_harvester}
+                  disable_screenshare_framerate: {get_param: disable_screenshare_framerate}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -510,6 +511,13 @@ resources:
                     echo "TURNS_HOST=${TURNS_SRV%:*}" >> .env
                     echo "TURNS_PORT=${TURNS_SRV##*:}" >> .env
                   fi
+                  if test "disable_screenshare_framerate" != "0"; then
+                    # https://github.com/jitsi/docker-jitsi-meet/pull/1674
+                    echo "DESKTOP_SHARING_FRAMERATE_AUTO=true" >> .env
+                  else
+                    echo "DESKTOP_SHARING_FRAMERATE_MIN=2" >> .env
+                    echo "DESKTOP_SHARING_FRAMERATE_MAX=10" >> .env
+                  fi
             path: /root/config-env.sh
             permissions: '0700'
           - content:
@@ -545,7 +553,6 @@ resources:
                   enable_stereo: {get_param: enable_stereo}
                   enable_etherpad: {get_param: enable_etherpad}
                   enable_jibri: {get_param: enable_jibri}
-                  disable_screenshare_framerate: {get_param: disable_screenshare_framerate}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -690,10 +697,7 @@ resources:
                   if test "enable_stereo" != 0; then
                     echo "config.testing.audioQuality.stereo = true;" >> $WEBCFG
                   fi
-                  echo "config.desktopSharingFrameRate = { min: 2, max: 10 };" >> $WEBCFG
-                  if test "disable_screenshare_framerate" != 0; then
-                    sed -i 's@^config.desktopSharingFrameRate@//config.desktopSharingFrameRate@' $WEBCFG
-                  fi
+                  #echo "config.desktopSharingFrameRate = { min: 2, max: 10 };" >> $WEBCFG
                   sleep 1
                   # Deploy users
                   if test -n "xmpp_domain"; then XMPP_DOMAIN=xmpp_domain; else XMPP_DOMAIN=meet.jitsi; fi
