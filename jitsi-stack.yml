@@ -390,6 +390,8 @@ resources:
                   mv buildx-v0.11.0.linux-amd64 ~/.docker/cli-plugins/docker-buildx
                   chmod +x ~/.docker/cli-plugins/docker-buildx
                   sed -i -e 's@,linux/arm64@@g' -e 's/ \-\-push//g' Makefile
+                  # Fixup chrome download
+                  sed -i 's@edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/@/storage.googleapis.com/chrome-for-testing-public/@g' jibri/rootfs/usr/bin/install-chrome.sh
                   make buildx-all JITSI_BUILD=stable JITSI_RELEASE=latest
             path: /root/build-jitsi.sh
             permissions: '0700'
