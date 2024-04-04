@@ -20,14 +20,18 @@ parameters:
   availability_zone:
     type: string
     #OTC default: eu-de-03
-    default: nova
+    #default: {get_resource: nova.availability_zone}
+    # This should be passed via the command line
 
   public:
     type: string
     constraints:
       - custom_constraint: neutron.network
     #OTC default: admin_external_net
-    default: ext-net
+    # This can be passed via command line, so let's not set a default
+
+  pubkey:
+    type: string
 
   # Separate multiple names with whitespace
   jitsi_user:
@@ -276,11 +280,12 @@ resources:
   # Generic
   #########
 
-  key:
+  jitsi_key:
     type: OS::Nova::KeyPair
     properties:
       name: {get_param: "OS::stack_name"}
-      save_private_key: true
+      public_key: {get_param: pubkey}
+      #save_private_key: true
 
   jitsi_wait_handle:
     type: OS::Heat::WaitConditionHandle
@@ -961,7 +966,7 @@ resources:
     type: OS::Nova::Server
     properties:
       name: {get_param: "OS::stack_name"}
-      key_name: {get_resource: key}
+      key_name: {get_resource: jitsi_key}
       image: {get_param: image_jitsi}
       flavor: {get_param: flavor_jitsi}
       availability_zone: {get_param: availability_zone}
@@ -982,8 +987,3 @@ outputs:
   jitsi_address_internal:
     value: {get_attr: [jitsi_port, fixed_ips, 0, ip_address]}
 
-  public_key:
-    value: {get_attr: [key, public_key]}
-
-  private_key:
-    value: {get_attr: [key, private_key]}
