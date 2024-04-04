@@ -1,5 +1,5 @@
 ---
-# A set of parameters
+# A minimal set of parameters -- see jitsi-stack.yml
 parameter_defaults:
   jitsi_user: JITSI_USERNAME JITSI_USERNAME2
   # Note: @meet.jitsi will be automatically assumed
@@ -7,13 +7,13 @@ parameter_defaults:
   public_domain: DOMAIN_FOR_JITSI
   public_port: PORT_FOR_JITSI
   # Cloud specific
-  #image_jitsi: openSUSE 15.3
+  #image_jitsi: openSUSE 15.5
   #flavor_jitsi: SCS-4V:8
-  #availability_zone: az1
+  #availability_zone: az1 # autodetected
   #docker_mtu: 0
-  #public: ext01
+  #public: ext01  # autodetected
   # Optional
-  #jitsi_version: stable-6726-1
+  #jitsi_version: stable-9364-1
   #timezone: Europe/Amsterdam
   #ui_language: nl
   #letsenc_mail: MAIL_FOR_LETSENCRYPT
