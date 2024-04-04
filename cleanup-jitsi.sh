@@ -23,7 +23,7 @@ fi
 echo "Cleaning stack $STACK_NM"
 if ! [[ "$STACK" == *"$STACK_NM"* ]]; then echo "No such stack $STACK_NM"; exit 2; fi
 JITSI_ADDRESS=$(openstack stack output show ${STACK_NM} jitsi_address -f value -c output_value)
-ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM linux@$JITSI_ADDRESS sudo /root/down.sh
+ssh -o "ConnectTimeout=12" -o "StrictHostKeyChecking=no" -i jitsi-$USERNM linux@$JITSI_ADDRESS sudo /root/down.sh
 openstack stack delete -y --wait $STACK_NM
 rm -f $STACK_NM $STACK_NM.pub
 STACK=$(openstack stack list -f value -c "Stack Name" -c "Stack Status")

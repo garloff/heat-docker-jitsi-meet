@@ -94,18 +94,17 @@ if test -z "$STATUS"; then
   rm -f jitsi-$USERNM jitsi-$USERNM.pub
   ssh-keygen -q -C jitsi-$USERNM -t ed25519 -N "" -f jitsi-$USERNM || return 1
   PUBKEY="$(cat jitsi-$USERNM.pub)"
-  PARAMS="--parameter pubkey=\"${PUBKEY}\""
   # External network
   if ! grep '^ *public:' jitsi-user-$USERNM.yml >/dev/null; then
     EXT_NET=$(openstack network list --external -f value -c Name | head -n1)
-    PARAMS="$PARAMS --parameter public=\"${EXT_NET}\""
+    PARAMS="--parameter public=${EXT_NET}"
   fi
   if ! grep '^ *availability_zone:' jitsi-user-$USERNM.yml >/dev/null; then
     AZ=$(openstack availability zone list --compute -f value -c "Zone Name" -c "Zone Status" | grep available | head -n1 | cut -d" " -f1)
     if test -n "$AZ"; then PARAMS="$PARAMS --parameter availability_zone=$AZ"; fi
   fi
-  echo openstack stack create --timeout 26 $PARAMS -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM
-  openstack stack create --timeout 26 $PARAMS -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM
+  echo openstack stack create --timeout 26 --parameter pubkey="$PUBKEY" $PARAMS -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM
+  openstack stack create --timeout 26 --parameter pubkey="$PUBKEY" $PARAMS -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM
   if test $? != 0; then
     echo "openstack stack create FAILED for $USERNM"
     if test -x ./sendalarm.sh; then
