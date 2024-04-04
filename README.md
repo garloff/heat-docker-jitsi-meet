@@ -26,9 +26,9 @@ is what these scripts and templates solve for you.
   don't need them. Unless you do some redirection to forward port 80 to 8000, you will need to change
   the ``letenc_http_port`` setting to 80 to make the acme-challenge succeed. 
 
-* You need to also define ``image_jitsi``, ``flavor_jitsi``, ``availability_zone`` and ``public``
-  (the network from which to allocate public floating IPs from) to match your cloud.
-  The defaults are working on CityCloud, OTC specific changes are commented out.
+* You need to also define ``image_jitsi`` and ``flavor_jitsi`` (though on SCS clouds, the defaults
+  should work). ``availability_zone`` and ``public`` (the network from which to allocate public
+  floating IPs from) used to be needed but are typically autodetected these days.
 
 * Optionally set up a file ``.dyndns-USERNM`` which is sourced (called).
   This can be used to do do a call to register your public IP address (in ``JITSI_ADDRESS``)
@@ -43,7 +43,7 @@ is what these scripts and templates solve for you.
   You can try ``540``, ``480`` or ``360`` if you have many participants with limited bandwidth (or 
   run into server upstream bandwidth limitations for large conferences). If you use ``tweak_ideal_height``,
   a few more adjustments are made: the minimal height is lowered to 180, SimulCast is enabled (which
-  is default anyway) and LayerSuppresion is enabled (not enabled by default). You can also use
+  is default anyway) and LayerSuppression is enabled (not enabled by default). You can also use
   ``tweak_channelLastN`` allows you to limit the number of videos streams (from the last N speakers)
   to be active, default is ``-1`` (unlimited).
 
@@ -62,16 +62,17 @@ is what these scripts and templates solve for you.
 
 ## Requirements
 
-* You need to have a ``.ostackrc.JITSI`` file that sets your environment variables such to make
+* You need to have a ``.ostackrc.USERNM`` file that sets your environment variables such to make
   the openstack command line tools work -- setting ``OS_CLOUD`` (plus settings in 
   ``~/.config/openstack/clouds.yaml`` and ``secure.yaml``) or old-style full set of ``OS_`` 
-  variables.
+  variables. This will fall back to .ostackrc.JITSI. If `$OS_CLOUD` is already set when calling
+  the script, it will NOT be overridden by the settings.
 
 * I used an openSUSE image that has a repo with current docker already configured. Except
-  for the SUSEfirewall2 disablement and the default username, there is not much you'd need
-  to adjust to make it work elsewhere. Be sure to not use any image that allows for ssh
-  password auth, though, if you are interested in not becoming a target for hackers ...
-  Find my image on http://kfg.images.obs-website.eu-de.otc.t-systems.com/
+  for the SUSEfirewall2 disablement, there is not much you'd need to adjust to make it work
+  elsewhere. Be sure to not use any image that allows for ssh password auth, though, if you
+  are interested in not becoming a target for hackers ...
+  Find my images on http://kfg.images.obs-website.eu-de.otc.t-systems.com/
 
 * On some old heat implementations (including OTC's), you may need a cloud-init with PR#290 
   fixed in the image.
@@ -81,6 +82,10 @@ is what these scripts and templates solve for you.
   or designate or similar protocol -- the magic is done in the ``.dnydns`` file. You can
   provide SSL certs or use the Let's Encrypt magic to get certs on the fly. (Obviously,
   you can also work with IP addresses, but I can't recommend this.)
+
+* Some clouds will advertise the internal heat endpoint for the completion event which
+  won't work in many cases. Enable `workaround_heat_internal_ep_broken: true` then.
+
 
 ## Usage
 
@@ -99,11 +104,11 @@ In the configured setup, guests can join open rooms, but rooms can only be activ
 by authenticated users -- the one that is defined in your ``jitsi-user-USERNM.yml``
 file. Use ``USERNM`` here. (The domain ``@meet.jitsi`` is implied here.)
 
-You can access the server afterwards with ``ssh -i jitsi-USERNM.ssh linux@FIP``,
+You can access the server afterwards with ``ssh -i jitsi-USERNM linux@FIP``,
 where you replace ``USERNM`` with the username used above, ``FIP`` with the floating
 IP address assigned to the server and ``linux`` with the default username of the image.
 (Obviously instead of FIP, you can use the DNS name that you need to register anyway,
-so ``ssh -i jitsi-USERNM.ssh linux@public_domain``.)
+so ``ssh -i jitsi-USERNM linux@public_domain``.)
 
 Inside the VM, you can do useful things such as looking at the docker logs or
 becoming root and using
@@ -112,17 +117,13 @@ to deploy another authenticated user that can create rooms.
 
 However, it is not recommended to login to container and do changes -- they are not persistent and
 won't survive a container restart. So rather use the ``jitsi-user-USERNM.yml`` configuration
-to have several users. In my setup, I redeploy the container every night to have fresh state and
+to have several users. In my setup, I redeploy the container every week to have fresh state and
 current software.
 
 Refer to the docker-jitsi-meet(https://github.com/jitsi/docker-jitsi-meet/) documentation
 for more info.
 
 ## TODO
-
-* Allow for more than one user to be registered on installation.
-
-* Watch out for more tweaks to deal with limited bandwidth for large conferences.
 
 * Support pre-allocated floating IP address to allow for pseudo-static DNS setup.
 
