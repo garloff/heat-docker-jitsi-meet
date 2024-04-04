@@ -103,6 +103,12 @@ if test -z "$STATUS"; then
     AZ=$(openstack availability zone list --compute -f value -c "Zone Name" -c "Zone Status" | grep available | head -n1 | cut -d" " -f1)
     if test -n "$AZ"; then PARAMS="$PARAMS --parameter availability_zone=$AZ"; fi
   fi
+  if ! grep '^ *wants_volume:' jitsi-user-$USERNM.yml >/dev/null; then
+    FLV=$(grep '^ *flavor_jitsi:' jitsi-user-$USERNM.yml | sed 's/^ *flavor_jitsi: \([^#]*\)$/\1/' | tr -d '"')
+    if test -z "$FLV"; then FLV=$(grep -A7 '^ *flavor_jitsi:' jitsi-stack.yml | grep '^ *default:' | head -n1 | sed 's/^ *default: \(.*\)$/\1/' | tr -d '"'); fi
+    DISKSIZE=$(openstack flavor show $FLV -f json | jq '.disk')
+    if test -n $DISKSIZE -a $DISKSIZE -gt 0; then PARAMS="$PARAMS --parameter wants_volume=false"; fi
+  fi
   echo openstack stack create --timeout 26 --parameter pubkey="$PUBKEY" $PARAMS -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM
   openstack stack create --timeout 26 --parameter pubkey="$PUBKEY" $PARAMS -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM
   if test $? != 0; then

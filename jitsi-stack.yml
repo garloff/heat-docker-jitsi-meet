@@ -15,7 +15,12 @@ parameters:
     constraints:
       - custom_constraint: nova.flavor
     #OTC default: s2.large.4
-    default: SCS-2V-4-10
+    default: SCS-2V-4
+
+  wants_volume:
+    # we can override this to false if the flavor comes with a local disk
+    type: boolean
+    default: true
 
   availability_zone:
     type: string
@@ -964,6 +969,7 @@ resources:
 
   jitsi_server:
     type: OS::Nova::Server
+    condition: not_root_vol_cd
     properties:
       name: {get_param: "OS::stack_name"}
       key_name: {get_resource: jitsi_key}
@@ -977,6 +983,41 @@ resources:
       config_drive: true
       networks:
         - port: {get_resource: jitsi_port}
+
+  jitsi_volume:
+    type: OS::Cinder::Volume
+    condition: root_vol_cd
+    properties:
+      name: {get_param: "OS::stack_name"}
+      size: 10
+      image: {get_param: image_jitsi}
+
+  jitsi_server_vol:
+    type: OS::Nova::Server
+    condition: root_vol_cd
+    properties:
+      name: {get_param: "OS::stack_name"}
+      key_name: {get_resource: jitsi_key}
+      #volume: {get_resource: jitsi_volume}
+      #block_device_mapping_v2: [{"image": {get_param: "image_jitsi"}, "device_type": "disk", "volume_size": 10, "delete_on_termination": "true"}]
+      block_device_mapping_v2: [{"volume_id": {get_resource: "jitsi_volume"}}]
+      flavor: {get_param: flavor_jitsi}
+      availability_zone: {get_param: availability_zone}
+      user_data_format: SOFTWARE_CONFIG
+      user_data: {get_resource: jitsi_boot_config}
+      metadata:
+        group: jitsi
+      config_drive: true
+      networks:
+        - port: {get_resource: jitsi_port}
+
+
+########
+conditions:
+  root_vol_cd:
+    get_param: wants_volume
+  not_root_vol_cd:
+    not: root_vol_cd
 
 ########
 outputs:
