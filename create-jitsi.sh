@@ -31,13 +31,20 @@
 # (c) Kurt Garloff <kurt@garloff.de>, 3/2020
 # SPDX-License-Identifier: CC-BY-SA-4.0
 #cd ~
-# Setup openstack environment
-if test ! -r .ostackrc.JITSI; then echo "Create .ostackrc.JITSI to configure your env for OpenStack access"; exit 1; fi
-source .ostackrc.JITSI
 # User might have passed not just USERNM but template filename
 if test -r "$1"; then USERNM=${1%.yml}; USERNM=${USERNM##*-user-}; else USERNM=$1; fi
 # We need user settings in jitsi-user-$USERNM.yml
-if test -z "$USERNM" -o ! -r "jitsi-user-$USERNM.yml"; then echo "Usage: create-jitsi.sh USER (jitsi-user-USER.yml needs to exist)"; exit 1; fi
+if test -z "$USERNM" -o ! -r "jitsi-user-$USERNM.yml"; then
+  echo "Usage: create-jitsi.sh USER (jitsi-user-USER.yml needs to exist)"
+  exit 1
+fi
+# Setup openstack environment
+if test -z "$OS_CLOUD" -a ! -r .ostackrc.$USERNM -a ! -r .ostackrc.JITSI; then
+  echo "Create .ostackrc.$USERNM to configure your env for OpenStack access"
+  exit 1
+fi
+if test -z "$OS_CLOUD" -a -r .ostackrc.$USERNM; then source .ostackrc.$USERNM; fi
+if test -z "$OS_CLOUD" -a -r .ostackrc.JITSI; then source .ostackrc.JITSI; fi
 START=$(date +%s)
 date
 # If we interrupted, let's not recreate the stack, but just track progress
@@ -83,7 +90,21 @@ if test -z "$STATUS"; then
   OS_HEAT_PUB=${OS_HEAT_PUB%/*}
   EXC='!'
   echo -e "#${EXC}/bin/bash\nsed \"s@$OS_HEAT_INT@$OS_HEAT_PUB@\" -i /root/run.sh" > heat-public-ep.sh
-  openstack stack create --timeout 26 -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM
+  # Create keypair
+  rm -f jitsi-$USERNM jitsi-$USERNM.pub
+  ssh-keygen -q -C jitsi-$USERNM -t ed25519 -N "" -f jitsi-$USERNM || return 1
+  PUBKEY="$(cat jitsi-$USERNM.pub)"
+  # External network
+  if ! grep '^ *public:' jitsi-user-$USERNM.yml >/dev/null; then
+    EXT_NET=$(openstack network list --external -f value -c Name | head -n1)
+    PARAMS="--parameter public=${EXT_NET}"
+  fi
+  if ! grep '^ *availability_zone:' jitsi-user-$USERNM.yml >/dev/null; then
+    AZ=$(openstack availability zone list --compute -f value -c "Zone Name" -c "Zone Status" | grep available | head -n1 | cut -d" " -f1)
+    if test -n "$AZ"; then PARAMS="$PARAMS --parameter availability_zone=$AZ"; fi
+  fi
+  echo openstack stack create --timeout 26 --parameter pubkey="$PUBKEY" $PARAMS -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM
+  openstack stack create --timeout 26 --parameter pubkey="$PUBKEY" $PARAMS -e jitsi-user-$USERNM.yml -t jitsi-stack.yml jitsi-$USERNM
   if test $? != 0; then
     echo "openstack stack create FAILED for $USERNM"
     if test -x ./sendalarm.sh; then
@@ -95,6 +116,11 @@ if test -z "$STATUS"; then
 else
   echo "$STATUS"
 fi
+# Determine image username
+IMG=$(grep '^ *image_jitsi:' jitsi-user-$USERNM.yml | sed 's/^ *image_jitsi: \([^#]*\)$/\1/' | tr -d '"')
+if test -z "$IMG"; then IMG=$(grep -A6 '^ *image_jitsi:' jitsi-stack.yml | grep '^ *default:' | sed 's/^ *default: \(.*\)$/\1/' | tr -d '"'); fi
+IMG_USER=$(openstack image show "$IMG" -f json | jq '.properties.image_original_user' | tr -d '"')
+if test -z "$IMG_USER" -o "$IMG_USER" = "null"; then IMG_USER=$(echo "${IMG%% *}" | tr 'A-Z' 'a-z'); fi
 # We are not waiting for completion, let's rather use the time to watch and already set
 # the public IP address, as it takes some time to propagate through DNS
 JITSI_ADDRESS=$(openstack stack output show jitsi-$USERNM jitsi_address -f value -c output_value)
@@ -106,9 +132,6 @@ echo "Jitsi address: $JITSI_ADDRESS"
 # Optional .dyndns allows for updating Dynamic DNS server via REST call
 PUB_DOM=$(grep ' public_domain:' jitsi-user-$USERNM.yml | sed 's/^[^:]*: *\(.*\) *$/\1/')
 STATUS=$(openstack stack show jitsi-$USERNM -f value -c stack_status)
-# Save private key
-openstack stack output show jitsi-$USERNM private_key -c output_value -f value  > jitsi-$USERNM.ssh
-chmod 0600 jitsi-$USERNM.ssh
 ssh-keygen -R $JITSI_ADDRESS -f ~/.ssh/known_hosts
 ssh-keygen -R $PUB_DOM -f ~/.ssh/known_hosts 
 # Now watch the stack evolving
@@ -116,10 +139,10 @@ DISP=0
 declare -i STALL=0
 while test "$STATUS" != "CREATE_FAILED" -a "$STATUS" != "CREATE_COMPLETE"; do
   # Only output new lines (yes, there is a race, but this is for debugging/info only, so ignore
-  LEN=$(ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM.ssh linux@$JITSI_ADDRESS sudo wc -l /var/log/cloud-init-output.log)
+  LEN=$(ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM $IMG_USER@$JITSI_ADDRESS sudo wc -l /var/log/cloud-init-output.log)
   LEN=${LEN%% *}
   if test -n "$LEN" -a "$LEN" != "$DISP"; then
-    ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM.ssh linux@$JITSI_ADDRESS sudo tail -n $((LEN-DISP)) /var/log/cloud-init-output.log
+    ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM $IMG_USER@$JITSI_ADDRESS sudo tail -n $((LEN-DISP)) /var/log/cloud-init-output.log
     STALL=0
     DISP=$LEN
   else
@@ -147,10 +170,10 @@ fi
 # Now output results
 STOP=$(date +%s)
 openstack server list
-LEN=$(ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM.ssh linux@$JITSI_ADDRESS sudo wc -l /var/log/cloud-init-output.log)
+LEN=$(ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM $IMG_USER@$JITSI_ADDRESS sudo wc -l /var/log/cloud-init-output.log)
 LEN=${LEN%% *}
 if test $LEN != $DISP; then
-  ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM.ssh linux@$JITSI_ADDRESS sudo tail -n $((LEN-DISP)) /var/log/cloud-init-output.log
+  ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM $IMG_USER@$JITSI_ADDRESS sudo tail -n $((LEN-DISP)) /var/log/cloud-init-output.log
   DISP=$LEN
 fi
 openstack stack list
