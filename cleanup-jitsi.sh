@@ -42,6 +42,7 @@ STACK=$(openstack stack list -f value -c "Stack Name" -c "Stack Status")
 openstack stack list
 if ! [[ "$STACK" == *"$STACK_NM"* ]]; then exit 0; fi
 openstack security group delete $STACK_NM
+openstack volume delete $STACK_NM >/dev/null 2>&1
 openstack stack delete -y --wait $STACK_NM
 echo "Stack should be gone now ..."
 openstack stack list
