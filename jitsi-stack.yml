@@ -488,8 +488,13 @@ resources:
                     sed -i 's@^#JIGASI_SIP_PASSWORD=.*$@JIGASI_SIP_PASSWORD=jigasi_sip_password@' .env
                     sed -i 's@^#JIGASI_SIP_TRANSPORT=.*$@JIGASI_SIP_TRANSPORT=jigasi_sip_transport@' .env
                     sed -i 's@^#JIGASI_SIP_PORT=.*$@JIGASI_SIP_PORT=jigasi_sip_port@' .env
-                    sed -i 's@^JIGASI_PORT_MIN=.*$@JIGASI_PORT_MIN=jigasi_port_min@' .env
-                    sed -i 's@^JIGASI_PORT_MAX=.*$@JIGASI_PORT_MAX=jigasi_port_max@' .env
+                    if grep '^JIGASI_PORT_MIN=' .env >/dev/null; then
+                      sed -i 's@^JIGASI_PORT_MIN=.*$@JIGASI_PORT_MIN=jigasi_port_min@' .env
+                      sed -i 's@^JIGASI_PORT_MAX=.*$@JIGASI_PORT_MAX=jigasi_port_max@' .env
+                    else
+                      echo "JIGASI_PORT_MIN=jigasi_port_min" >> .env
+                      echo "JIGASI_PORT_MAX=jigasi_port_max" >> .env
+                    fi
                   fi
                   # En/Disable Websockets
                   sed -i 's/^ENABLE_XMPP_WEBSOCKET=/#ENABLE_XMPP_WEBSOCKET=/' .env
@@ -744,6 +749,9 @@ resources:
                     # And restart jigasi container
                     docker restart root-jigasi-1
                   fi
+                  # Favor UDP video/audio path to preempt other processes
+                  renice -n -5 $(ps axl | grep jvb | grep java | awk '{print $3;}')
+                  renice -n -5 $(ps axlw | grep docker-proxy | grep 10000 | awk '{print $3;}')
                   # Signal completion
                   # Note: Optionally replace internal with public endpoint (heat-public-ep.sh)
                   wc_notify --data-binary '{"status": "SUCCESS"}'
