@@ -271,6 +271,11 @@ parameters:
     type: boolean
     default: false
 
+  # Enable whiteboard
+  enable_whiteboard:
+    type: boolean
+    default: false
+
   # Enable jibri
   enable_jibri:
     type: boolean
@@ -313,6 +318,7 @@ resources:
           - make
           - pwgen
           - curl
+          - systemd-sysvcompat
         write_files:
           - content: {get_file: cert.crt}
             path: /root/cert.crt
@@ -433,6 +439,7 @@ resources:
                   enable_websocket: {get_param: enable_websocket}
                   enable_prejoin: {get_param: enable_prejoin}
                   enable_etherpad: {get_param: enable_etherpad}
+                  enable_whiteboard: {get_param: enable_whiteboard}
                   floating_ip: {get_attr: [jitsi_floating_ip, floating_ip_address]}
                   disable_tcp_harvester: {get_param: disable_tcp_harvester}
                   disable_screenshare_framerate: {get_param: disable_screenshare_framerate}
@@ -443,10 +450,11 @@ resources:
                   export HOME=/$USER
                   cd ~/docker-jitsi-meet
 
-                  cp -p docker-compose.yml etherpad.yml jigasi.yml jibri.yml ~
+                  cp -p docker-compose.yml etherpad.yml jigasi.yml jibri.yml whiteboard.yml ~
                   cp -p env.example ~/.env
                   cd ..
                   sed -i 's@etherpad/etherpad:1.8.6@etherpad/etherpad:latest@' etherpad.yml
+                  sed -i 's@jitsi/excalidraw-backend:latest@jitsi/excalidraw-backend:21@' excalidraw-backend.yml
                   for nm in *.yml; do sed -i 's@^\( *image: jitsi/[^:]*\):.*$@\1:latest@g' $nm; done
                   chmod 0600 .env
                   # This is only used internally
@@ -513,6 +521,9 @@ resources:
                     sed -i "s@^#ETHERPAD_PUBLIC_URL=.*\$@ETHERPAD_PUBLIC_URL=${PUBLIC_URL}etherpad/p/@" .env
                     sed -i 's/ETHERPAD_DEFAULT_PAD_TEXT=.*$/ETHERPAD_DEFAULT_PAD_TEXT="Ephemeral(!) Web Chat.\n"/' .env
                   fi
+                  if test "enable_whiteboard" = "True"; then
+                    sed -i 's/^#WHITEBOARD_COLLAB_SERVER_URL_BASE/WHITEBOARD_COLLAB_SERVER_URL_BASE/' .env
+                  fi
                   if test -n "turn_credentials"; then
                     echo "TURN_CREDENTIALS=\"turn_credentials\"" >> .env
                   fi
@@ -567,6 +578,7 @@ resources:
                   tweak_opusRed: {get_param: tweak_opusRed}
                   enable_stereo: {get_param: enable_stereo}
                   enable_etherpad: {get_param: enable_etherpad}
+                  enable_whiteboard: {get_param: enable_whiteboard}
                   enable_jibri: {get_param: enable_jibri}
                 template: |
                   #!/usr/bin/env bash
@@ -584,6 +596,9 @@ resources:
                   fi
                   if test "enable_etherpad" = "True"; then
                     DFILES="$DFILES -f ~/etherpad.yml"
+                  fi
+                   if test "enable_etherpad" = "True"; then
+                    DFILES="$DFILES -f ~/whiteboard.yml"
                   fi
                   eval docker-compose $DFILES up -d
 
@@ -1018,6 +1033,7 @@ resources:
       config_drive: true
       networks:
         - port: {get_resource: jitsi_port}
+
 
 
 ########
