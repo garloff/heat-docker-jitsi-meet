@@ -91,9 +91,9 @@ if test -z "$STATUS"; then
   EXC='!'
   echo -e "#${EXC}/bin/bash\nsed \"s@$OS_HEAT_INT@$OS_HEAT_PUB@\" -i /root/run.sh" > heat-public-ep.sh
   # Create keypair
-  rm -f jitsi-$USERNM jitsi-$USERNM.pub
-  ssh-keygen -q -C jitsi-$USERNM -t ed25519 -N "" -f jitsi-$USERNM || return 1
-  PUBKEY="$(cat jitsi-$USERNM.pub)"
+  rm -f keypair-jitsi-$USERNM keypair-jitsi-$USERNM.pub
+  ssh-keygen -q -C keypair-jitsi-$USERNM -t ed25519 -N "" -f jitsi-$USERNM || return 1
+  PUBKEY="$(cat keypair-jitsi-$USERNM.pub)"
   # External network
   if ! grep '^ *public:' jitsi-user-$USERNM.yml >/dev/null; then
     EXT_NET=$(openstack network list --external -f value -c Name | head -n1)
@@ -145,10 +145,10 @@ DISP=0
 declare -i STALL=0
 while test "$STATUS" != "CREATE_FAILED" -a "$STATUS" != "CREATE_COMPLETE"; do
   # Only output new lines (yes, there is a race, but this is for debugging/info only, so ignore
-  LEN=$(ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM $IMG_USER@$JITSI_ADDRESS sudo wc -l /var/log/cloud-init-output.log)
+  LEN=$(ssh -o StrictHostKeyChecking=no -i keypair-jitsi-$USERNM $IMG_USER@$JITSI_ADDRESS sudo wc -l /var/log/cloud-init-output.log)
   LEN=${LEN%% *}
   if test -n "$LEN" -a "$LEN" != "$DISP"; then
-    ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM $IMG_USER@$JITSI_ADDRESS sudo tail -n $((LEN-DISP)) /var/log/cloud-init-output.log
+    ssh -o StrictHostKeyChecking=no -i keypair-jitsi-$USERNM $IMG_USER@$JITSI_ADDRESS sudo tail -n $((LEN-DISP)) /var/log/cloud-init-output.log
     STALL=0
     DISP=$LEN
   else
@@ -176,10 +176,10 @@ fi
 # Now output results
 STOP=$(date +%s)
 openstack server list
-LEN=$(ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM $IMG_USER@$JITSI_ADDRESS sudo wc -l /var/log/cloud-init-output.log)
+LEN=$(ssh -o StrictHostKeyChecking=no -i keypair-jitsi-$USERNM $IMG_USER@$JITSI_ADDRESS sudo wc -l /var/log/cloud-init-output.log)
 LEN=${LEN%% *}
 if test $LEN != $DISP; then
-  ssh -o StrictHostKeyChecking=no -i jitsi-$USERNM $IMG_USER@$JITSI_ADDRESS sudo tail -n $((LEN-DISP)) /var/log/cloud-init-output.log
+  ssh -o StrictHostKeyChecking=no -i keypair-jitsi-$USERNM $IMG_USER@$JITSI_ADDRESS sudo tail -n $((LEN-DISP)) /var/log/cloud-init-output.log
   DISP=$LEN
 fi
 openstack stack list

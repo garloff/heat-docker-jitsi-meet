@@ -28,7 +28,7 @@ if test -z "$IMG"; then IMG=$(grep -A6 '^ *image_jitsi:' jitsi-stack.yml | grep 
 IMG_USER=$(openstack image show "$IMG" -f json | jq '.properties.image_original_user' | tr -d '"')
 if test -z "$IMG_USER" -o "$IMG_USER" = "null"; then IMG_USER=$(echo "${IMG%% *}" | tr 'A-Z' 'a-z'); fi
 JITSI_ADDRESS=$(openstack stack output show ${STACK_NM} jitsi_address -f value -c output_value)
-ssh -o "ConnectTimeout=12" -o "StrictHostKeyChecking=no" -i jitsi-$USERNM $IMG_USER@$JITSI_ADDRESS sudo /root/down.sh
+ssh -o "ConnectTimeout=12" -o "StrictHostKeyChecking=no" -i keypair-jitsi-$USERNM $IMG_USER@$JITSI_ADDRESS sudo /root/down.sh
 openstack stack delete -y --wait $STACK_NM
 rm -f $STACK_NM $STACK_NM.pub
 STACK=$(openstack stack list -f value -c "Stack Name" -c "Stack Status")
