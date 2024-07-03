@@ -104,18 +104,18 @@ In the configured setup, guests can join open rooms, but rooms can only be activ
 by authenticated users -- the one that is defined in your ``jitsi-user-USERNM.yml``
 file. Use ``USERNM`` here. (The domain ``@meet.jitsi`` is implied here.)
 
-You can access the server afterwards with ``ssh -i jitsi-USERNM linux@FIP``,
+You can access the server afterwards with ``ssh -i keypair-jitsi-USERNM linux@FIP``,
 where you replace ``USERNM`` with the username used above, ``FIP`` with the floating
 IP address assigned to the server and ``linux`` with the default username of the image.
 (Obviously instead of FIP, you can use the DNS name that you need to register anyway,
-so ``ssh -i jitsi-USERNM linux@public_domain``.)
+so ``ssh -i keypair-jitsi-USERNM linux@public_domain``.)
 
 Inside the VM, you can do useful things such as looking at the docker logs or
 becoming root and using
 ``docker exec -it root-prosody-1 prosodyctl --config /config/prosody.cfg.lua adduser USERNM2 meet.jitsi PASSWD2``
 to deploy another authenticated user that can create rooms.
 
-However, it is not recommended to login to container and do changes -- they are not persistent and
+However, it is not recommended to login to containers and do changes -- they are not persistent and
 won't survive a container restart. So rather use the ``jitsi-user-USERNM.yml`` configuration
 to have several users. In my setup, I redeploy the container every week to have fresh state and
 current software.
@@ -140,5 +140,5 @@ Contributions (ideally as Pull Requests) are welcome!
 
 ## License
 
-Use it under the terms of the Creative Commons with attribution and share-alike 3.0 terms.
-(CC BY-SA 3.0).
+Use it under the terms of the Creative Commons with attribution and share-alike 4.0 terms.
+(CC-BY-SA-4.0).
