@@ -92,7 +92,7 @@ if test -z "$STATUS"; then
   echo -e "#${EXC}/bin/bash\nsed \"s@$OS_HEAT_INT@$OS_HEAT_PUB@\" -i /root/run.sh" > heat-public-ep.sh
   # Create keypair
   rm -f keypair-jitsi-$USERNM keypair-jitsi-$USERNM.pub
-  ssh-keygen -q -C keypair-jitsi-$USERNM -t ed25519 -N "" -f jitsi-$USERNM || return 1
+  ssh-keygen -q -C jitsi-$USERNM -t ed25519 -N "" -f keypair-jitsi-$USERNM || return 1
   PUBKEY="$(cat keypair-jitsi-$USERNM.pub)"
   # External network
   if ! grep '^ *public:' jitsi-user-$USERNM.yml >/dev/null; then
