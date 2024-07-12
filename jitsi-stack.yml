@@ -792,7 +792,7 @@ resources:
                     DFILES="$DFILES -f ~/etherpad.yml"
                   fi
                    if test "enable_whitepad" = "True"; then
-                    DFILES="$DFILES -f ~/whitepad.yml"
+                    DFILES="$DFILES -f ~/whiteboard.yml"
                   fi
                   eval docker-compose $DFILES down
             path: /root/down.sh
