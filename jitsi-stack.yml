@@ -777,6 +777,7 @@ resources:
                 params:
                   jigasi_sip_uri: {get_param: jigasi_sip_uri}
                   enable_etherpad: {get_param: enable_etherpad}
+                  enable_whiteboard: {get_param: enable_whiteboard}
                 template: |
                   #!/bin/bash
                   export USER=root
@@ -790,6 +791,9 @@ resources:
                   if test "enable_etherpad" = "True"; then
                     DFILES="$DFILES -f ~/etherpad.yml"
                   fi
+                   if test "enable_whitepad" = "True"; then
+                    DFILES="$DFILES -f ~/whitepad.yml"
+                  fi
                   eval docker-compose $DFILES down
             path: /root/down.sh
             permissions: '0750'
@@ -801,6 +805,9 @@ resources:
                 /root/run.sh
               elif test "$1" = "stop"; then
                 /root/down.sh
+              elif test "$1" = "restart"; then
+                /root/down.sh
+                /root/up.sh
               else
                 echo "Unknown command \"$1\""
                 exit 3
