@@ -453,9 +453,9 @@ resources:
                   cp -p docker-compose.yml etherpad.yml jigasi.yml jibri.yml whiteboard.yml ~
                   cp -p env.example ~/.env
                   cd ..
-                  sed -i 's@etherpad/etherpad:1.8.6@etherpad/etherpad:latest@' etherpad.yml
-                  sed -i 's@jitsi/excalidraw-backend:latest@jitsi/excalidraw-backend:21@' whiteboard.yml
+                  sed -i 's@etherpad/etherpad:2.0.3@etherpad/etherpad:latest@' etherpad.yml
                   for nm in *.yml; do sed -i 's@^\( *image: jitsi/[^:]*\):.*$@\1:latest@g' $nm; done
+                  sed -i 's@jitsi/excalidraw-backend:latest@jitsi/excalidraw-backend:21@' whiteboard.yml
                   chmod 0600 .env
                   # This is only used internally
                   #sed -i 's/passw0rd/p@33W0rd/g' .env
