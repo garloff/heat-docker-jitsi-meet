@@ -52,7 +52,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-9909
+    default: stable-10008
     #default: stable
 
   # Default 0 is autodetect (using the MTU from the default route's NIC)
@@ -587,6 +587,8 @@ resources:
                   export HOME=/$USER
                   cd ~
 
+                  sleep 1
+                  sync
                   DFILES="-f ~/docker-compose.yml"
                   if test -n "jigasi_sip_uri"; then
                     DFILES="$DFILES -f ~/jigasi.yml"
