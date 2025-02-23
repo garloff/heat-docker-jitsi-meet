@@ -52,7 +52,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-9909
+    default: stable-10008
     #default: stable
 
   # Default 0 is autodetect (using the MTU from the default route's NIC)
@@ -601,15 +601,19 @@ resources:
                     DFILES="$DFILES -f ~/whiteboard.yml"
                   fi
                   eval docker-compose $DFILES up -d
-
+                  sleep 5; sync
                   WEBCFG=~/.jitsi-meet-cfg/web/config.js
                   WEBIFCFG=~/.jitsi-meet-cfg/web/interface_config.js
-                  # Wait up to two mins for web config (due to wait for letsenc certificate)
+                  echo -n "Waiting for nginx: "
                   declare -i ctr=0
-                  while test ! -e $WEBCFG -a $ctr -le 120; do
-                    sleep 1
+                  while test -z "$NGINX" -a $ctr -le 120; do
+                    NGINX=$(ps -x | grep "nginx: master" | grep -v grep | awk '{ print $1; }')
+                    echo -n "."
+                    sleep 2
+                    if test $((ctr%15)) -eq 0 -o -n "$NGINX"; then echo -en "\n "; fi
                     let ctr+=1
                   done
+                  ls -l $WEBCFG
                   # Only if not using LETSENCRYPT
                   if test -z "letsenc_mail"; then
                     cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
@@ -621,6 +625,7 @@ resources:
                   fi
                   sleep 1
                   cp -p $WEBCFG $WEBCFG.orig
+                  sync
                   # Apply fixes
                   sed -f fixup-welcome.sed -f fixup-transcription.sed -i $WEBCFG
                   # Does no longer work in newer templates
