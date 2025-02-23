@@ -587,8 +587,6 @@ resources:
                   export HOME=/$USER
                   cd ~
 
-                  sleep 1
-                  sync
                   DFILES="-f ~/docker-compose.yml"
                   if test -n "jigasi_sip_uri"; then
                     DFILES="$DFILES -f ~/jigasi.yml"
@@ -606,12 +604,15 @@ resources:
 
                   WEBCFG=~/.jitsi-meet-cfg/web/config.js
                   WEBIFCFG=~/.jitsi-meet-cfg/web/interface_config.js
-                  # Wait up to two mins for web config (due to wait for letsenc certificate)
+                  # Wait up to four mins for web config (due to wait for letsenc certificate)
+                  echo -n "Waiting for $WEBCFG: "
                   declare -i ctr=0
-                  while test ! -e $WEBCFG -a $ctr -le 120; do
+                  while test ! -e $WEBCFG -a $ctr -le 240; do
                     sleep 1
                     let ctr+=1
+                    echo -n "."
                   done
+                  echo
                   # Only if not using LETSENCRYPT
                   if test -z "letsenc_mail"; then
                     cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
@@ -623,6 +624,7 @@ resources:
                   fi
                   sleep 1
                   cp -p $WEBCFG $WEBCFG.orig
+                  sync
                   # Apply fixes
                   sed -f fixup-welcome.sed -f fixup-transcription.sed -i $WEBCFG
                   # Does no longer work in newer templates
