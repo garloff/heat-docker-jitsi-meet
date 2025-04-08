@@ -52,7 +52,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-10008
+    default: stable-10133-1
     #default: stable
 
   # Default 0 is autodetect (using the MTU from the default route's NIC)
@@ -182,7 +182,7 @@ parameters:
     type: string
     default: ""
 
-  # Enable WSS (I have never gotten it to work)
+  # Enable WSS
   enable_websocket:
     type: number
     default: 0
@@ -232,12 +232,12 @@ parameters:
   # https://github.com/jitsi/jitsi-meet/issues/5230
   tweak_AudioMuted:
     type: number
-    default: 12
+    default: 15
 
   # tweak limit after which participants join with muted video
   tweak_VideoMuted:
     type: number
-    default: 12
+    default: 15
 
   # tweak MAXMEM for JVB (MiB), use 6144 to double allowed mem for JVB
   # Default of 0 leaves this alone
@@ -366,8 +366,6 @@ resources:
                   if test -z "letsenc_mail"; then
                     sed -i 's/\(certbot\-auto \-\-noninteractive.*$\)/timeout 21 \1 || true/' web/Dockerfile
                   fi
-                  # FIXME: Pin to stable-5765-1 version for jitsi-meet-web/-config
-                  #sed -i '/apt-get/s/jitsi\-meet\-web\(\-config\|\) /jitsi-meet-web\1=1.0.4900-1 /g' web/Dockerfile
                   # Inject icon/watermark
                   if test -r /root/favicon.ico -a $(stat -c %s /root/favicon.ico) -gt 0; then
                     mkdir -p web/rootfs/usr/share/jitsi-meet/images
@@ -389,6 +387,8 @@ resources:
                   fi
                   # Replace tag - by default, it is "stable-XXXX" but we want to use "latest", which is the one built by Makefile
                   for nm in docker-compose.yml jigasi.yml jibri.yml; do sed -i 's/:\-stable\-[5-9][0-9-]*/:latest/' $nm; done
+                  # Allow writes to change container config
+                  sed -i 's@/web:/config:Z@/web:/config@' docker-compose.yml
                   # End workarounds
                   # jvbMaxmem tweaks
                   JVBMM=tweak_jvbMaxmem
