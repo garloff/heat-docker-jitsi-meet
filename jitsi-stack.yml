@@ -52,7 +52,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-10133-1
+    default: stable-10184
     #default: stable
 
   # Default 0 is autodetect (using the MTU from the default route's NIC)
@@ -772,6 +772,8 @@ resources:
                   # Favor UDP video/audio path to preempt other processes
                   renice -n -5 $(ps axl | grep jvb | grep java | awk '{print $3;}')
                   renice -n -5 $(ps axlw | grep docker-proxy | grep 10000 | awk '{print $3;}')
+                  # Save disk space (be nice to cloud provider)
+                  fstrim -v /
                   # Signal completion
                   # Note: Optionally replace internal with public endpoint (heat-public-ep.sh)
                   wc_notify --data-binary '{"status": "SUCCESS"}'
