@@ -409,6 +409,9 @@ resources:
                   # Fixup chrome download
                   sed -i 's@edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/@/storage.googleapis.com/chrome-for-testing-public/@g' jibri/rootfs/usr/bin/install-chrome.sh
                   make buildx-all JITSI_BUILD=stable JITSI_RELEASE=latest
+                  # FIXME: Remove openjdk-17-jre-headless and install openjdk-11-jre-headless
+                  # in jigasi to fix Unable to handle format: LINEAR, 48000.0 Hz, 16-bit, Mono, LittleEndian, Signed
+                  # https://github.com/jitsi/jigasi/issues/366
             path: /root/build-jitsi.sh
             permissions: '0700'
           - content:
@@ -759,7 +762,7 @@ resources:
                     #sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/24000=900' $PROP
                     sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/32000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/32000=25@' $PROP
                     sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/16000=20@' $PROP
-                    #sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.SILK/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.SILK/16000=15@' $PROP
+                    sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.SILK/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.SILK/16000=15@' $PROP
                     # avoid immediate call back
                     echo "net.java.sip.communicator.impl.protocol.sip.SKIP_REINVITE_ON_FOCUS_CHANGE_PROP=true" >> $PROP
                     # This is needed for sipgate, no more according to my testing
