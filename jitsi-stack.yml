@@ -52,7 +52,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-10314
+    default: stable-10655
     #default: stable
 
   # Default 0 is autodetect (using the MTU from the default route's NIC)
@@ -408,6 +408,7 @@ resources:
                   sed -i -e 's@,linux/arm64@@g' -e 's/ \-\-push//g' Makefile
                   # Fixup chrome download
                   sed -i 's@edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/@/storage.googleapis.com/chrome-for-testing-public/@g' jibri/rootfs/usr/bin/install-chrome.sh
+                  sed -i 's@130\.0\.6723\.116@131.0.6778.264@' jibri/Dockerfile
                   make buildx-all JITSI_BUILD=stable JITSI_RELEASE=latest
                   # FIXME: Remove openjdk-17-jre-headless and install openjdk-11-jre-headless
                   # in jigasi to fix Unable to handle format: LINEAR, 48000.0 Hz, 16-bit, Mono, LittleEndian, Signed
@@ -458,7 +459,7 @@ resources:
                   cd ..
                   sed -i 's@etherpad/etherpad:2.0.3@etherpad/etherpad:latest@' etherpad.yml
                   for nm in *.yml; do sed -i 's@^\( *image: jitsi/[^:]*\):.*$@\1:latest@g' $nm; done
-                  sed -i 's@jitsi/excalidraw-backend:latest@jitsi/excalidraw-backend:21@' whiteboard.yml
+                  sed -i 's@jitsi/excalidraw-backend:latest@jitsi/excalidraw-backend:2025.8.2@' whiteboard.yml
                   chmod 0600 .env
                   # This is only used internally
                   #sed -i 's/passw0rd/p@33W0rd/g' .env
