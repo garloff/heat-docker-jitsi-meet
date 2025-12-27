@@ -623,9 +623,12 @@ resources:
                     cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
                     cp -p cert.key ~/.jitsi-meet-cfg/web/keys/cert.key
                   else
-                    chmod og-r ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOM/privkey.pem
-                    cp -p ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOM/privkey.pem cert.key
-                    cp -p ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOM/fullchain.pem cert.crt
+                    #chmod og-r ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOM/privkey.pem
+                    #cp -p ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOM/privkey.pem cert.key
+                    #cp -p ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOM/fullchain.pem cert.crt
+                    chmod og-r ~/.jitsi-meet-cfg/web/acme-certs/$LETSENC_DOM/key.pem
+                    cp -p ~/.jitsi-meet-cfg/web/acme-certs/$LETSENC_DOM/key.pem cert.key
+                    cp -p ~/.jitsi-meet-cfg/web/acme-certs/$LETSENC_DOM/fullchain.pem cert.crt
                   fi
                   sleep 1
                   cp -p $WEBCFG $WEBCFG.orig
