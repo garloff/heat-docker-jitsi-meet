@@ -7,21 +7,24 @@ parameter_defaults:
   public_domain: DOMAIN_FOR_JITSI
   public_port: PORT_FOR_JITSI
   # Cloud specific
-  #image_jitsi: openSUSE 15.5
-  #flavor_jitsi: SCS-4V:8
+  #image_jitsi: openSUSE 15.6
+  #flavor_jitsi: SCS-4V-8
   #availability_zone: az1 # autodetected
   #docker_mtu: 0
   #public: ext01  # autodetected
   # Optional
-  #jitsi_version: stable-9364-1
+  #jitsi_version: stable-10655
   #timezone: Europe/Amsterdam
   #ui_language: nl
-  #letsenc_mail: MAIL_FOR_LETSENCRYPT
-  #letsenc_domain: DOMAIN_FOR_LETSENCRYPT
+  #letsenc_mail: MAIL_FOR_ZEROSSL
+  #letsenc_domain: DOMAIN_FOR_ZEROSSL
   #jigasi_sip_uri: username@registrar
   #jigasi_sip_password: sippasswd
   #jigasi_sip_port: 5060
   #jigasi_default_room: default room to dial into
   #tweak_ideal_height: 540
   #tweak_channelLastN: 6
+  #enable_av1: 1
+  #av1_bandwidth: 112, 368, 1152, 1956
+  #tweak_opusMaxAvgRate: 24
 
