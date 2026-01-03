@@ -202,7 +202,7 @@ parameters:
     type: string
     default: ""
 
-  # tweak VP9 bandwidth in kbps low, std, hi, e.g.: 128, 416, 1312, 2176
+  # tweak VP9 bandwidth in kbps low, std, hi, e.g.: 128, 416, 1312, 2144
   vp9_bandwidth:
     type: string
     default: ""
@@ -408,6 +408,7 @@ resources:
                   sed -i -e 's@,linux/arm64@@g' -e 's/ \-\-push//g' Makefile
                   # Fixup chrome download
                   sed -i 's@edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/@/storage.googleapis.com/chrome-for-testing-public/@g' jibri/rootfs/usr/bin/install-chrome.sh
+                  sed -i 's@ARG CHROME_RELEASE=130.0.6723.116@ARG CHROME_RELEASE=143.0.7499.40@' jibri/Dockerfile
                   make buildx-all JITSI_BUILD=stable JITSI_RELEASE=latest
                   # FIXME: Remove openjdk-17-jre-headless and install openjdk-11-jre-headless
                   # in jigasi to fix Unable to handle format: LINEAR, 48000.0 Hz, 16-bit, Mono, LittleEndian, Signed
