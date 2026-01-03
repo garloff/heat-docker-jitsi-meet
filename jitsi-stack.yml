@@ -197,22 +197,22 @@ parameters:
     type: number
     default: 0
 
-  # tweak AV1 bandwidth in kbps low, std, hi, e.g.: 120, 320, 960
+  # tweak AV1 bandwidth in kbps low, std, hi, e.g.: 112, 368, 1152, 1952
   av1_bandwidth:
     type: string
     default: ""
 
-  # tweak VP9 bandwidth in kbps low, std, hi, e.g.: 150, 400, 1200
+  # tweak VP9 bandwidth in kbps low, std, hi, e.g.: 128, 416, 1312, 2176
   vp9_bandwidth:
     type: string
     default: ""
 
-  # tweak VP8 bandwidth in kbps low, std, hi, e.g.: 200, 500, 1500
+  # tweak VP8 bandwidth in kbps low, std, hi, e.g.: 160, 512, 1600, 2560
   vp8_bandwidth:
     type: string
     default: ""
 
-  # tweak opus rate (in kpbs, default is 20)
+  # tweak opus rate (in kpbs, default is 20, reasonable values range from 12 to 32)
   tweak_opusMaxAvgRate:
     type: number
     default: 0
@@ -232,7 +232,7 @@ parameters:
   # https://github.com/jitsi/jitsi-meet/issues/5230
   tweak_AudioMuted:
     type: number
-    default: 15
+    default: 25
 
   # tweak limit after which participants join with muted video
   tweak_VideoMuted:
@@ -692,33 +692,39 @@ resources:
                     echo "config.useStunTurn = true;" >> $WEBCFG
                   fi
                   if test "enable_av1" != "0"; then
+                    echo "config.videoQuality = {};" >> $WEBCFG
                     echo "config.videoQuality.preferredCodec = 'AV1';" >> $WEBCFG
                     echo "config.p2p.preferredCodec = 'AV1';" >> $WEBCFG
+                    echo "config.videoQuality.enableAdaptiveMode = true;" >> $WEBCFG
+                    echo "config.videoQuality.screenshareCodec = 'AV1';" >> $WEBCFG
+                    echo "config.videoQuality.mobileScreenshareCodec = 'VP9';" >> $WEBCFG
                   elif test "enable_vp9" != "0"; then
+                    echo "config.videoQuality = {};" >> $WEBCFG
                     #sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*\$@\1\2'VP9',@" $WEBCFG
                     echo "config.videoQuality.preferredCodec = 'VP9';" >> $WEBCFG
                     echo "config.p2p.preferredCodec = 'VP9';" >> $WEBCFG
+                    echo "config.videoQuality.enableAdaptiveMode = true;" >> $WEBCFG
+                    echo "config.videoQuality.screenshareCodec = 'VP9';" >> $WEBCFG
+                    echo "config.videoQuality.mobileScreenshareCodec = 'VP9';" >> $WEBCFG
                   fi
                   if test "tweak_opusMaxAvgRate" != 0 -o "tweak_opusRed" != "False" -o "enable_stereo" != 0 -o "enable_av1" != 0; then
                     echo "//config.testing = {};" >> $WEBCFG
-                    echo "config.testing.audioQuality = {};" >> $WEBCFG
+                    echo "config.audioQuality = {};" >> $WEBCFG
                   fi
                   if test "enable_av1" != "0"; then
                     echo "config.p2p.codecPreferenceOrder = ['AV1', 'VP9', 'VP8', 'H264'];" >> $WEBCFG
                     echo "config.videoQuality.codecPreferenceOrder = ['AV1', 'VP9', 'VP8', 'H264'];" >> $WEBCFG
-                    echo "config.testing.enableAv1 = true;" >> $WEBCFG
-                  fi
-                  if test -n "av1_bandwidth" -o -n "vp9_bandwidth" -o -n "vp8_bandwidth"; then
-                    echo "config.videoQuality.maxBitratesVideo = {};" >> $WEBCFG
+                    echo "config.videoQuality.mobileCodecPreferenceOrder = ['VP9', 'AV1', 'H264', 'VP8'];" >> $WEBCFG
+                    echo "config.testing = { enableAv1: true, assumeBandwidth: true, enableAV1ForFF: true, enableCodecSelectionAPI: true };" >> $WEBCFG
                   fi
                   if test -n "av1_bandwidth"; then
-                    echo "av1_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.AV1 = { low: \1000, standard: \2000, high: \3000 };@' >> $WEBCFG
+                    echo "av1_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.av1 = { scalabilityModeEnabled: true, useSimulcast: false, useKSVC: true, maxBitratesVideo: { low: \1000, standard: \2000, high: \3000, fullhd: \4000 } };@' >> $WEBCFG
                   fi
                   if test -n "vp9_bandwidth"; then
-                    echo "vp9_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP9 = { low: \1000, standard: \2000, high: \3000 };@' >> $WEBCFG
+                    echo "vp9_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.vp9 = { scalabilityModeEnabled: true, useSimulcast: false, useKSVC: true, maxBitratesVideo: { low: \1000, standard: \2000, high: \3000, fullhd: \4000 } };@' >> $WEBCFG
                   fi
                   if test -n "vp8_bandwidth"; then
-                    echo "vp8_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.maxBitratesVideo.VP8 = { low: \1000, standard: \2000, high: \3000 };@' >> $WEBCFG
+                    echo "vp8_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.vp8 = { scalabilityModeEnabled: false, maxBitratesVideo: { low: \1000, standard: \2000, high: \3000, fullhd: \4000 } };@' >> $WEBCFG
                   fi
                   if test "tweak_AudioMuted" != 0; then
                     sed -i 's@^[/ ]*config\.startAudioMuted = .*$@config.startAudioMuted = tweak_AudioMuted;@' $WEBCFG
@@ -726,14 +732,16 @@ resources:
                   if test "tweak_VideoMuted" != 0; then
                     sed -i 's@^[/ ]*config\.startVideoMuted = .*$@config.startVideoMuted = tweak_VideoMuted;@' $WEBCFG
                   fi
-                  if test "tweak_opusMaxAvgRate" != 0; then
-                    echo "config.testing.audioQuality.opusMaxAverageBitrate = tweak_opusMaxAvgRate000;" >> $WEBCFG
+                  if test "tweak_opusRed" != "False"; then
+                     echo "config.enableOpusRed = $(echo 'tweak_opusRed' | tr A-Z a-z);" >> $WEBCFG
                   fi
-                   if test "tweak_opusRed" != "False"; then
-                     echo "config.testing.audioQuality.enableOpusRed = $(echo 'tweak_opusRed' | tr A-Z a-z);" >> $WEBCFG
+                  if test "tweak_opusMaxAvgRate" != 0; then
+                    echo "config.audioQuality.opusMaxAverageBitrate = tweak_opusMaxAvgRate000;" >> $WEBCFG
                   fi
                   if test "enable_stereo" != 0; then
-                    echo "config.testing.audioQuality.stereo = true;" >> $WEBCFG
+                    echo "config.audioQuality.stereo = true;" >> $WEBCFG
+                  else
+                    echo "config.audioQuality.enableOpusDtx = true;" >> $WEBCFG
                   fi
                   #echo "config.desktopSharingFrameRate = { min: 2, max: 10 };" >> $WEBCFG
                   sleep 1
@@ -815,7 +823,7 @@ resources:
                 /root/down.sh
               elif test "$1" = "restart"; then
                 /root/down.sh
-                /root/up.sh
+                /root/run.sh
               else
                 echo "Unknown command \"$1\""
                 exit 3
