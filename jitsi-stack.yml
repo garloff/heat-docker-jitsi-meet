@@ -600,7 +600,7 @@ resources:
                   if test "enable_etherpad" = "True"; then
                     DFILES="$DFILES -f ~/etherpad.yml"
                   fi
-                   if test "enable_etherpad" = "True"; then
+                   if test "enable_whiteboard" = "True"; then
                     DFILES="$DFILES -f ~/whiteboard.yml"
                   fi
                   eval docker-compose $DFILES up -d
@@ -794,6 +794,7 @@ resources:
                   jigasi_sip_uri: {get_param: jigasi_sip_uri}
                   enable_etherpad: {get_param: enable_etherpad}
                   enable_whiteboard: {get_param: enable_whiteboard}
+                  enable_jibri: {get_param: enable_jibri}
                 template: |
                   #!/bin/bash
                   export USER=root
@@ -804,10 +805,13 @@ resources:
                   if test -n "jigasi_sip_uri"; then
                     DFILES="$DFILES -f ~/jigasi.yml"
                   fi
+                  if test "enable_jibri" = "True"; then
+                    DFILES="$DFILES -f ~/jibri.yml"
+                  fi
                   if test "enable_etherpad" = "True"; then
                     DFILES="$DFILES -f ~/etherpad.yml"
                   fi
-                   if test "enable_whiteboard" = "True"; then
+                  if test "enable_whiteboard" = "True"; then
                     DFILES="$DFILES -f ~/whiteboard.yml"
                   fi
                   eval docker-compose $DFILES down
