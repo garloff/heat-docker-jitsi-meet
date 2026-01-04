@@ -779,7 +779,9 @@ resources:
                     # Wait 7mins for room opening
                     echo "org.jitsi.jigasi.JVB_INVITE_TIMEOUT=420000" >> $PROP
                     # And restart jigasi container
-                    docker restart root-jigasi-1
+                    #docker restart root-jigasi-1
+                    PID=$(ps axlw | grep jigasi | grep java | awk '{ print $3; }')
+                    kill $PID
                   fi
                   # Favor UDP video/audio path to preempt other processes
                   renice -n -5 $(ps axl | grep jvb | grep java | awk '{print $3;}')
