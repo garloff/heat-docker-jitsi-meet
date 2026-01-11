@@ -281,6 +281,27 @@ parameters:
     type: boolean
     default: false
 
+  # Recording
+  enable_recording:
+    type: boolean
+    default: false
+
+  # whisper bridge service (https://github.com/garloff/jitsi-whisper-bridge/)
+  # This should be something like wss://host:port/streaming-whisper/ws
+  jitsi_whisper_bridge:
+    type: string
+    default: ""
+
+  # base64 encoded RSA key
+  whisper_bridge_secret:
+    type: string
+    default: ""
+
+  # List of transcription languages (recommendation: start with 'auto', 'en')
+  transcription_languages:
+    type: string
+    default: "'auto', 'en', 'de', 'es', 'fr', 'nl', 'sk', 'ua', 'pl', 'sv', 'cn'"
+
 description: Heat stack for Jitsi deployment using docker-jitsi-meet
 
 ##########
@@ -447,11 +468,13 @@ resources:
                   floating_ip: {get_attr: [jitsi_floating_ip, floating_ip_address]}
                   disable_tcp_harvester: {get_param: disable_tcp_harvester}
                   disable_screenshare_framerate: {get_param: disable_screenshare_framerate}
+                  enable_recording: {getr_param: enable_recording}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
                   export USERNAME=$USER
                   export HOME=/$USER
+                  if test -n "xmpp_domain"; then XMPP_DOMAIN=xmpp_domain; else XMPP_DOMAIN=meet.jitsi; fi
                   cd ~/docker-jitsi-meet
 
                   cp -p docker-compose.yml etherpad.yml jigasi.yml jibri.yml whiteboard.yml ~
@@ -548,12 +571,21 @@ resources:
                     echo "DESKTOP_SHARING_FRAMERATE_MIN=2" >> .env
                     echo "DESKTOP_SHARING_FRAMERATE_MAX=10" >> .env
                   fi
+                  if test "enable_recording" != "False"; then
+                    #sed -i 's@^#ENABLE_RECORDING.*$@ENABLE_RECORDING=1@' .env
+                    echo "ENABLE_RECORDING=1" >> .env
+                    #sed -i 's@^XMPP_RECORDER_DOMAIN=.*@XMPP_REORDER_DOMAIN=recorder.$XMPP_DOMAIN@' .env
+                    #echo "XMPP_RECORDER_DOMAIN=recorder.$XMPP_DOMAIN" >> .env
+                  fi
             path: /root/config-env.sh
             permissions: '0700'
           - content:
               str_replace:
                 params:
                   xmpp_domain: {get_param: xmpp_domain}
+                  public_domain: {get_param: public_domain}
+                  public_port: {get_param: public_port}
+                  public_url: {get_param: public_url}
                   wc_notify: {get_attr: ['jitsi_wait_handle', 'curl_cli']}
                   jitsi_user: {get_param: jitsi_user}
                   jitsi_password: {get_param: jitsi_password}
@@ -584,6 +616,9 @@ resources:
                   enable_etherpad: {get_param: enable_etherpad}
                   enable_whiteboard: {get_param: enable_whiteboard}
                   enable_jibri: {get_param: enable_jibri}
+                  jitsi_whisper_bridge: {get_param: jitsi_whisper_bridge}
+                  whisper_bridge_secret: {get_param: whisper_bridge_secret}
+                  transcription_languages: {get_param: transcription_languages}
                 template: |
                   #!/usr/bin/env bash
                   export USER=root
@@ -745,6 +780,17 @@ resources:
                     echo "config.audioQuality.enableOpusDtx = true;" >> $WEBCFG
                   fi
                   #echo "config.desktopSharingFrameRate = { min: 2, max: 10 };" >> $WEBCFG
+                  if test "jitsi_whisper_bridge" != ""; then
+                    echo "config.transcription = {
+                      enabled: true,
+                      translationLanguages: [transcription_languages],
+                      translationLanguagesHead: ['auto', 'en'],
+                      useAppLanguage: true,
+                      preferredLanguage: 'auto',
+                      disableStartForAll: false,
+                      autoCaptionOnRecord: false,
+                    };" >> $WEBCFG
+                  fi
                   sleep 1
                   # Deploy users
                   if test -n "xmpp_domain"; then XMPP_DOMAIN=xmpp_domain; else XMPP_DOMAIN=meet.jitsi; fi
@@ -778,14 +824,42 @@ resources:
                     echo "org.jitsi.impl.neomedia.transform.csrc.CsrcTransformEngine.DISCARD_CONTRIBUTING_SOURCES=true" >> $PROP
                     # Wait 7mins for room opening
                     echo "org.jitsi.jigasi.JVB_INVITE_TIMEOUT=420000" >> $PROP
+                    if test -n "jitsi_whisper_bridge"; then
+                      TPASS=$(openssl rand -hex 16)
+                      PUBLIC_URL="public_url"
+                      if test -z "$PUBLIC_URL"; then PUBLIC_URL="https://public_domain:public_port/"; fi
+                      docker exec root-prosody-1 prosodyctl --config /config/prosody.cfg.lua register transcriber hidden.$XMPP_DOMAIN $TPASS
+                      echo "# Enable transcription service on jitsi_whisper_bridge" >> $PROP
+                      echo "org.jitsi.jigasi.ENABLE_TRANSCRIPTION=true" >> $PROP
+                      echo "org.jitsi.jigasi.transcription.ENABLE_TRANSLATION=true" >> $PROP
+                      echo "org.jitsi.jigasi.transcription.DIRECTORY=/tmp/transcripts" >> $PROP
+                      echo "org.jitsi.jigasi.transcription.BASE_URL=https://$PUBLIC_URL/transcripts" >> $PROP
+                      echo "org.jitsi.jigasi.transcription.jetty.port=-1" >> $PROP
+                      echo "org.jitsi.jigasi.transcription.ADVERTISE_URL=true" >> $PROP
+                      echo "org.jitsi.jigasi.transcription.SEND_TXT=false" >> $PROP
+                      echo "org.jitsi.jigasi.transcription.SAVE_TXT=true" >> $PROP
+                      echo "org.jitsi.jigasi.transcription.SEND_JSON=true" >> $PROP
+                      echo "org.jitsi.jigasi.transcription.SAVE_JSON=false" >> $PROP
+                      echo "org.jitsi.jigasi.transcription.customService=org.jitsi.jigasi.transcription.WhisperTranscriptionService" >> $PROP
+                      echo "org.jitsi.jigasi.transcription.whisper.websocket_url=jitsi_whisper_bridge" >> $PROP
+                      if test -n "whisper_bridge_secret"; then
+                        echo "org.jitsi.jigasi.transcription.whisper.private_key=whisper_bridge_secret" >> $PROP
+                        echo "org.jitsi.jigasi.transcription.whisper.private_key_name=whisper-key-1" >> $PROP
+                        echo "org.jitsi.jigasi.transcription.whisper.jwt_audience=whisper-service" >> $PROP
+                      fi
+                      echo "org.jitsi.jigasi.xmpp.acc.USER_ID=transcriber@hidden.$XMPP_DOMAIN" >> $PROP
+                      echo "org.jitsi.jigasi.xmpp.acc.PASS=$TPASS" >> $PROP
+                      echo "org.jitsi.jigasi.xmpp.acc.ANONYMOUS_AUTH=false" >> $PROP
+                      echo "org.jitsi.jigasi.xmpp.acc.ALLOW_NON_SECURE=true" >> $PROP
+                    fi
                     # And restart jigasi container
                     #docker restart root-jigasi-1
-                    PID=$(ps axlw | grep jigasi | grep java | awk '{ print $3; }')
-                    kill $PID
+                    JIGASI=$(ps axlw | grep jigasi | grep java | awk '{print $3;}')
+                    kill $JIGASI
                   fi
                   # Favor UDP video/audio path to preempt other processes
-                  renice -n -5 $(ps axl | grep jvb | grep java | awk '{print $3;}')
-                  renice -n -5 $(ps axlw | grep docker-proxy | grep 10000 | awk '{print $3;}')
+                  renice -n -6 $(ps axl | grep jvb | grep java | awk '{print $3;}')
+                  renice -n -3 $(ps axlw | grep docker-proxy | grep 10000 | awk '{print $3;}')
                   # Signal completion
                   # Note: Optionally replace internal with public endpoint (heat-public-ep.sh)
                   wc_notify --data-binary '{"status": "SUCCESS"}'
