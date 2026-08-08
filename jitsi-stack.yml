@@ -8,7 +8,7 @@ parameters:
     type: string
     constraints:
       - custom_constraint: glance.image
-    default: openSUSE 15.6
+    default: openSUSE 16.0
 
   flavor_jitsi:
     type: string
@@ -339,7 +339,6 @@ resources:
           - make
           - pwgen
           - curl
-          - systemd-sysvcompat
         write_files:
           - content: {get_file: cert.crt}
             path: /root/cert.crt
@@ -482,7 +481,7 @@ resources:
                   cd ..
                   sed -i 's@etherpad/etherpad:2.0.3@etherpad/etherpad:latest@' etherpad.yml
                   for nm in *.yml; do sed -i 's@^\( *image: jitsi/[^:]*\):.*$@\1:latest@g' $nm; done
-                  #sed -i 's@jitsi/excalidraw-backend:latest@jitsi/excalidraw-backend:21@' whiteboard.yml
+                  #sed -i 's@jitsi/excalidraw-backend:latest@jitsi/excalidraw-backend:2026.3.0@' whiteboard.yml
                   chmod 0600 .env
                   # This is only used internally
                   #sed -i 's/passw0rd/p@33W0rd/g' .env
@@ -626,7 +625,11 @@ resources:
                   export USERNAME=$USER
                   export HOME=/$USER
                   cd ~
-
+                  if type -p "docker-compose" 2>&1 >/dev/null; then
+                    DCOMPOSE="docker-compose"
+                  else
+                    DCOMPOSE="docker compose"
+                  fi
                   DFILES="-f ~/docker-compose.yml"
                   if test -n "jigasi_sip_uri"; then
                     DFILES="$DFILES -f ~/jigasi.yml"
@@ -640,7 +643,7 @@ resources:
                    if test "enable_whiteboard" = "True"; then
                     DFILES="$DFILES -f ~/whiteboard.yml"
                   fi
-                  eval docker-compose $DFILES up -d
+                  eval $DCOMPOSE $DFILES -p jitsi up -d
                   sleep 5; sync
                   WEBCFG=~/.jitsi-meet-cfg/web/config.js
                   WEBIFCFG=~/.jitsi-meet-cfg/web/interface_config.js
@@ -797,10 +800,10 @@ resources:
                   if test -n "xmpp_domain"; then XMPP_DOMAIN=xmpp_domain; else XMPP_DOMAIN=meet.jitsi; fi
                   USERS=(jitsi_user); PASSW=(jitsi_password)
                   for idx in $(seq 0 $((${#USERS[*]}-1))); do
-                    docker exec root-prosody-1 prosodyctl --config /config/prosody.cfg.lua register ${USERS[$idx]} $XMPP_DOMAIN ${PASSW[$idx]}
+                    docker exec jitsi-prosody-1 prosodyctl --config /config/prosody.cfg.lua register ${USERS[$idx]} $XMPP_DOMAIN ${PASSW[$idx]}
                   done
                   # Restart nginx in web container to make SSL/height changes effective
-                  #docker restart root-web-1
+                  #docker restart jitsi-web-1
                   NGINX=$(ps -x | grep "nginx: master" | grep -v grep | awk '{ print $1; }')
                   kill $NGINX
                   # Dial-In
@@ -829,7 +832,7 @@ resources:
                       TPASS=$(openssl rand -hex 16)
                       PUBLIC_URL="public_url"
                       if test -z "$PUBLIC_URL"; then PUBLIC_URL="https://public_domain:public_port/"; fi
-                      docker exec root-prosody-1 prosodyctl --config /config/prosody.cfg.lua register transcriber hidden.$XMPP_DOMAIN $TPASS
+                      docker exec jitsi-prosody-1 prosodyctl --config /config/prosody.cfg.lua register transcriber hidden.$XMPP_DOMAIN $TPASS
                       echo "# Enable transcription service on jitsi_whisper_bridge" >> $PROP
                       echo "org.jitsi.jigasi.ENABLE_TRANSCRIPTION=true" >> $PROP
                       echo "org.jitsi.jigasi.transcription.ENABLE_TRANSLATION=true" >> $PROP
@@ -854,7 +857,7 @@ resources:
                       echo "org.jitsi.jigasi.xmpp.acc.ALLOW_NON_SECURE=true" >> $PROP
                     fi
                     # And restart jigasi container
-                    #docker restart root-jigasi-1
+                    #docker restart jitsi-jigasi-1
                     JIGASI=$(ps axlw | grep jigasi | grep java | awk '{print $3;}')
                     kill $JIGASI
                   fi
@@ -879,6 +882,11 @@ resources:
                   export USERNAME=$USER
                   export HOME=/$USER
                   cd ~
+                  if type -p "docker-compose" 2>&1 >/dev/null; then
+                    DCOMPOSE="docker-compose"
+                  else
+                    DCOMPOSE="docker compose"
+                  fi
                   DFILES="-f ~/docker-compose.yml"
                   if test -n "jigasi_sip_uri"; then
                     DFILES="$DFILES -f ~/jigasi.yml"
@@ -892,7 +900,7 @@ resources:
                   if test "enable_whiteboard" = "True"; then
                     DFILES="$DFILES -f ~/whiteboard.yml"
                   fi
-                  eval docker-compose $DFILES down
+                  eval $DCOMPOSE -p jitsi $DFILES down
             path: /root/down.sh
             permissions: '0750'
           - content: |
