@@ -368,7 +368,10 @@ resources:
                   export HOME=/$USER
                   cd ~
                   mkdir -p ~/.jitsi-meet-cfg/{web/letsencrypt,web/nginx,transcripts,prosody,jicofo,jvb,jigasi/log}
-                  chown 999:1000 ~/.jitsi-meet-cfg/jigasi/log
+                  mkdir -p ~/.jitsi-meet-cfg/storage/{jibri,prosody,transcripts,web}
+                   mkdir -p ~/.jitsi-meet-cfg/tmp/{web-crontabs,web-load-test}
+                  chown -R 1000:1000 ~/.jitsi-meet-cfg
+                  #chown 999:1000 ~/.jitsi-meet-cfg/jigasi/log
                   # Generate Diffie-Hellmann parameters for SSL
                   openssl dhparam -out ~/.jitsi-meet-cfg/web/nginx/dhparams.pem 2048 &
                   systemctl stop SuSEfirewall2
@@ -406,7 +409,7 @@ resources:
                     sed -i -E '/^\s+disable-certificate-verification = true/a \\tclient-proxy = "focus.{{ .Env.XMPP_DOMAIN }}"' jicofo/rootfs/defaults/jicofo.conf
                   fi
                   # Replace tag - by default, it is "stable-XXXX" but we want to use "latest", which is the one built by Makefile
-                  for nm in docker-compose.yml jigasi.yml jibri.yml; do sed -i 's/:\-stable\-[5-9][0-9-]*/:latest/' $nm; done
+                  for nm in docker-compose.yml jigasi.yml jibri.yml; do sed -i 's/:\-stable\-[1-9][0-9-]*/:-latest/' $nm; done
                   # Allow writes to change container config
                   sed -i 's@/web:/config:Z@/web:/config@' docker-compose.yml
                   # End workarounds
