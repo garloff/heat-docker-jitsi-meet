@@ -385,6 +385,10 @@ resources:
                   #git revert 465816b4ebf2babf1b9e6daf007301c1fd17552e
                   # Move jvb into XMPP domain -- no longer used
                   #patch -p1 < ../jvb-xmpp-domain.diff
+                  # https://github.com/jitsi/docker-jitsi-meet/pull/2300
+                  if ! grep httpport web/rootfs/etc/s6-overlay/scripts/config 2>&1 >/dev/null; then
+                    sed -i '/^            \-\-standalone /a\            --httpport 8000 \\' web/rootfs/etc/s6-overlay/scripts/config
+                  fi
                   # We can safely ignore hanging pipstrap if we are not using letsenc
                   if test -z "letsenc_mail"; then
                     sed -i 's/\(certbot\-auto \-\-noninteractive.*$\)/timeout 21 \1 || true/' web/Dockerfile
@@ -595,6 +599,7 @@ resources:
                   jitsi_watermark_link: {get_param: jitsi_watermark_link}
                   ui_language: {get_param: ui_language}
                   letsenc_mail: {get_param: letsenc_mail}
+                  letsenc_domain: {get_param: letsenc_domain}
                   tweak_ideal_height: {get_param: tweak_ideal_height}
                   tweak_max_height: {get_param: tweak_max_height}
                   tweak_aspectRatio: {get_param: tweak_aspectRatio}
@@ -646,147 +651,84 @@ resources:
                    if test "enable_whiteboard" = "True"; then
                     DFILES="$DFILES -f ~/whiteboard.yml"
                   fi
-                  eval $DCOMPOSE $DFILES -p jitsi up -d
-                  sleep 5; sync
-                  WEBCFG=~/.jitsi-meet-cfg/web/config.js
-                  WEBIFCFG=~/.jitsi-meet-cfg/web/interface_config.js
-                  echo -n "Waiting for nginx: "
-                  declare -i ctr=0
-                  while test -z "$NGINX" -a $ctr -le 120; do
-                    NGINX=$(ps -x | grep "nginx: master" | grep -v grep | awk '{ print $1; }')
-                    echo -n "."
-                    sleep 2
-                    if test $((ctr%15)) -eq 0 -o -n "$NGINX"; then echo -en "\n "; fi
-                    let ctr+=1
-                  done
-                  ls -l $WEBCFG
-                  # Only if not using LETSENCRYPT
-                  if test -z "letsenc_mail"; then
-                    cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
-                    cp -p cert.key ~/.jitsi-meet-cfg/web/keys/cert.key
-                  else
-                    chmod og-r ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOM/privkey.pem
-                    cp -p ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOM/privkey.pem cert.key
-                    cp -p ~/.jitsi-meet-cfg/web/letsencrypt/$LETSENC_DOM/fullchain.pem cert.crt
-                  fi
-                  sleep 1
-                  cp -p $WEBCFG $WEBCFG.orig
-                  sync
-                  # Apply fixes
-                  sed -f fixup-welcome.sed -f fixup-transcription.sed -i $WEBCFG
-                  # Does no longer work in newer templates
-                  ASPECT="16/9"
-                  if test -n "tweak_aspectRatio"; then
-                     #sed -i "s@aspectRatio: [0-9/, ]*\$@aspectRatio: tweak_aspectRatio@" $WEBCFG
-                     ASPECT="tweak_aspectRatio"
-                  fi
-                  if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
-                     # New config style
-                     WIDTH=$((tweak_ideal_height*$ASPECT))
-                     sed -i 's@^\(config\.resolution =\).*$@\1 tweak_ideal_height;@' $WEBCFG
-                     sed -i "s@^\(config\.constraints\.video\.height = { ideal:\) [0-9]*,@\1 tweak_ideal_height,@" $WEBCFG
-                     sed -i "s@^\(config\.constraints\.video\.width = { ideal:\) [0-9]*,@\1 $WIDTH,@" $WEBCFG
-                                   fi
-                  if test -n "tweak_max_height" -a "tweak_max_height" != "0"; then
-                     #sed -i "s@^\([^/]*max:\)[ 0-9]*,\$@\1 tweak_max_height,@" $WEBCFG
-                     WIDTH=$((tweak_max_height*$ASPECT))
-                     sed -i "s@^\(config\.constraints\.video\.height = { ideal: [0-9]*, max:\) [0-9]*,@\1 tweak_max_height,@" $WEBCFG
-                     sed -i "s@^\(config\.constraints\.video\.width = { ideal: [0-9]*, max:\) [0-9]*,@\1 $WIDTH,@" $WEBCFG
-                  fi
-                  # TODO: Ensure Simulcast is NOT disabled
-                  #sed -i 's@^ */* *disableSimulcast:.*$@    disableSimulcast: false,@' $WEBCFG
-                  # TODO: Add tweak to enableLayerSuspension
-                  sed -i "/config\.disableSimulcast/aconfig.enableLayerSuspension = true;" $WEBCFG
-                  # TODO: Allow SuspendVideo
-                  #sed -i "/config\.enableLayerSuspension/aconfig.disableSuspendVideo = false;" $WEBCFG
-                  echo "// Overrides by run.sh (heat-docker-jitsi-meet)" >> $WEBCFG
+                  # Create custom configs before starting containers
+                  WEBCCFG=~/.jitsi-meet-cfg/web/custom-config.js
+                  echo "// Overrides by run.sh (heat-docker-jitsi-meet)" > $WEBCCFG
                   if test -n "tweak_channelLastN" -a "tweak_channelLastN" != "-1"; then
-                    echo "config.channelLastN = tweak_channelLastN;" >> $WEBCFG
+                    echo "config.channelLastN = tweak_channelLastN;" >> $WEBCCFG
                   else
-                    echo "config.lastNLimits = { 5:20, 30:15, 50:10, 70:5, 90:2 };" >> $WEBCFG
+                    echo "config.lastNLimits = { 5:20, 30:15, 50:10, 70:5, 90:2 };" >> $WEBCCFG
                   fi
-                  #sed -i 's@^ */* *requireDisplayName:.*$@    requireDisplayName: true,@' $WEBCFG
-                  sed -i 's@^config\.requireDisplayName = .*$@config.requireDisplayName = true;@' $WEBCFG
+                  sed -i 's@^config\.requireDisplayName = .*$@config.requireDisplayName = true;@' $WEBCCFG
                   if test "ui_language" != "en"; then
-                    #sed -i "s@^ */* *defaultLanguage:.*\$@    defaultLanguage: 'ui_language',@" $WEBCFG
-                    echo "config.defaultLanguage = 'ui_language';" >> $WEBCFG
-                  fi
-                  if test -n "jitsi_watermark_link"; then
-                    sed -i "s@JITSI_WATERMARK_LINK: '.*'@JITSI_WATERMARK_LINK: 'jitsi_watermark_link'@" $WEBIFCFG
+                    echo "config.defaultLanguage = 'ui_language';" >> $WEBCCFG
                   fi
                   if test "use_stun_p2p" != "0"; then
-                    echo -n "config.p2p.stunServers = [" >> $WEBCFG
-                    echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCFG
+                    echo -n "config.p2p.stunServers = [" >> $WEBCCFG
+                    echo -n "stun_servers"  | sed "s/\([^,]*\)/ { urls: 'stun:\1' }/g" >> $WEBCCFG
                     if test -n "turn_credentials"; then
                       TURNCRED=", username: 'turn_credentials', credential: 'turn_credentials'"
                     fi
                     if test -n "turns_server"; then
-                      echo -n "turns_server" | sed "s/\([^,]*\)/, { urls: 'turns:\1'$TURNCRED }/g" >> $WEBCFG
+                      echo -n "turns_server" | sed "s/\([^,]*\)/, { urls: 'turns:\1'$TURNCRED }/g" >> $WEBCCFG
                     fi
                     if test -n "turn_server"; then
-                      echo -n "turn_server" | sed "s/\([^,]*\)/, { urls: 'turn:\1'$TURNCRED}/g" >> $WEBCFG
+                      echo -n "turn_server" | sed "s/\([^,]*\)/, { urls: 'turn:\1'$TURNCRED}/g" >> $WEBCCFG
                     fi
-                    echo " ];" >> $WEBCFG
+                    echo " ];" >> $WEBCCFG
                     if test -n "turn_server" -o -n "turns_server"; then
-                      echo "config.p2p.useStunTurn = true;" >> $WEBCFG
+                      echo "config.p2p.useStunTurn = true;" >> $WEBCCFG
                     fi
                   fi
                   if test -n "turn_server" -o -n "turns_server"; then
-                    echo "config.useStunTurn = true;" >> $WEBCFG
+                    echo "config.useStunTurn = true;" >> $WEBCCFG
                   fi
                   if test "enable_av1" != "0"; then
-                    echo "config.videoQuality = {};" >> $WEBCFG
-                    echo "config.videoQuality.preferredCodec = 'AV1';" >> $WEBCFG
-                    echo "config.p2p.preferredCodec = 'AV1';" >> $WEBCFG
-                    echo "config.videoQuality.enableAdaptiveMode = true;" >> $WEBCFG
-                    echo "config.videoQuality.screenshareCodec = 'AV1';" >> $WEBCFG
-                    echo "config.videoQuality.mobileScreenshareCodec = 'VP9';" >> $WEBCFG
+                    echo "config.videoQuality = {};" >> $WEBCCFG
+                    echo "config.videoQuality.preferredCodec = 'AV1';" >> $WEBCCFG
+                    echo "config.p2p.preferredCodec = 'AV1';" >> $WEBCCFG
+                    echo "config.videoQuality.enableAdaptiveMode = true;" >> $WEBCCFG
+                    echo "config.videoQuality.screenshareCodec = 'AV1';" >> $WEBCCFG
+                    echo "config.videoQuality.mobileScreenshareCodec = 'VP9';" >> $WEBCCFG
                   elif test "enable_vp9" != "0"; then
-                    echo "config.videoQuality = {};" >> $WEBCFG
-                    #sed -i "s@^\( *\)\/\/ \( *preferredCodec: \).*\$@\1\2'VP9',@" $WEBCFG
-                    echo "config.videoQuality.preferredCodec = 'VP9';" >> $WEBCFG
-                    echo "config.p2p.preferredCodec = 'VP9';" >> $WEBCFG
-                    echo "config.videoQuality.enableAdaptiveMode = true;" >> $WEBCFG
-                    echo "config.videoQuality.screenshareCodec = 'VP9';" >> $WEBCFG
-                    echo "config.videoQuality.mobileScreenshareCodec = 'VP9';" >> $WEBCFG
+                    echo "config.videoQuality = {};" >> $WEBCCFG
+                    echo "config.videoQuality.preferredCodec = 'VP9';" >> $WEBCCFG
+                    echo "config.p2p.preferredCodec = 'VP9';" >> $WEBCCFG
+                    echo "config.videoQuality.enableAdaptiveMode = true;" >> $WEBCCFG
+                    echo "config.videoQuality.screenshareCodec = 'VP9';" >> $WEBCCFG
+                    echo "config.videoQuality.mobileScreenshareCodec = 'VP9';" >> $WEBCCFG
                   fi
                   if test "tweak_opusMaxAvgRate" != 0 -o "tweak_opusRed" != "False" -o "enable_stereo" != 0 -o "enable_av1" != 0; then
-                    echo "//config.testing = {};" >> $WEBCFG
-                    echo "config.audioQuality = {};" >> $WEBCFG
+                    echo "//config.testing = {};" >> $WEBCCFG
+                    echo "config.audioQuality = {};" >> $WEBCCFG
                   fi
                   if test "enable_av1" != "0"; then
-                    echo "config.p2p.codecPreferenceOrder = ['AV1', 'VP9', 'VP8', 'H264'];" >> $WEBCFG
-                    echo "config.videoQuality.codecPreferenceOrder = ['AV1', 'VP9', 'VP8', 'H264'];" >> $WEBCFG
-                    echo "config.videoQuality.mobileCodecPreferenceOrder = ['VP9', 'AV1', 'H264', 'VP8'];" >> $WEBCFG
-                    echo "config.testing = { enableAv1: true, assumeBandwidth: true, enableAV1ForFF: true, enableCodecSelectionAPI: true };" >> $WEBCFG
+                    echo "config.p2p.codecPreferenceOrder = ['AV1', 'VP9', 'VP8', 'H264'];" >> $WEBCCFG
+                    echo "config.videoQuality.codecPreferenceOrder = ['AV1', 'VP9', 'VP8', 'H264'];" >> $WEBCCFG
+                    echo "config.videoQuality.mobileCodecPreferenceOrder = ['VP9', 'AV1', 'H264', 'VP8'];" >> $WEBCCFG
+                    echo "config.testing = { enableAv1: true, assumeBandwidth: true, enableAV1ForFF: true, enableCodecSelectionAPI: true };" >> $WEBCCFG
                   fi
                   if test -n "av1_bandwidth"; then
-                    echo "av1_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.av1 = { scalabilityModeEnabled: true, useSimulcast: false, useKSVC: true, maxBitratesVideo: { low: \1000, standard: \2000, high: \3000, fullhd: \4000 } };@' >> $WEBCFG
+                    echo "av1_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.av1 = { scalabilityModeEnabled: true, useSimulcast: false, useKSVC: true, maxBitratesVideo: { low: \1000, standard: \2000, high: \3000, fullhd: \4000 } };@' >> $WEBCCFG
                   fi
                   if test -n "vp9_bandwidth"; then
-                    echo "vp9_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.vp9 = { scalabilityModeEnabled: true, useSimulcast: false, useKSVC: true, maxBitratesVideo: { low: \1000, standard: \2000, high: \3000, fullhd: \4000 } };@' >> $WEBCFG
+                    echo "vp9_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.vp9 = { scalabilityModeEnabled: true, useSimulcast: false, useKSVC: true, maxBitratesVideo: { low: \1000, standard: \2000, high: \3000, fullhd: \4000 } };@' >> $WEBCCFG
                   fi
                   if test -n "vp8_bandwidth"; then
-                    echo "vp8_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.vp8 = { scalabilityModeEnabled: false, maxBitratesVideo: { low: \1000, standard: \2000, high: \3000, fullhd: \4000 } };@' >> $WEBCFG
-                  fi
-                  if test "tweak_AudioMuted" != 0; then
-                    sed -i 's@^[/ ]*config\.startAudioMuted = .*$@config.startAudioMuted = tweak_AudioMuted;@' $WEBCFG
-                  fi
-                  if test "tweak_VideoMuted" != 0; then
-                    sed -i 's@^[/ ]*config\.startVideoMuted = .*$@config.startVideoMuted = tweak_VideoMuted;@' $WEBCFG
+                    echo "vp8_bandwidth" | sed 's@^\([0-9]*\), *\([0-9]*\), *\([0-9]*\), *\([0-9]*\) *$@config.videoQuality.vp8 = { scalabilityModeEnabled: false, maxBitratesVideo: { low: \1000, standard: \2000, high: \3000, fullhd: \4000 } };@' >> $WEBCCFG
                   fi
                   if test "tweak_opusRed" != "False"; then
-                     echo "config.enableOpusRed = $(echo 'tweak_opusRed' | tr A-Z a-z);" >> $WEBCFG
+                     echo "config.enableOpusRed = $(echo 'tweak_opusRed' | tr A-Z a-z);" >> $WEBCCFG
                   fi
                   if test "tweak_opusMaxAvgRate" != 0; then
-                    echo "config.audioQuality.opusMaxAverageBitrate = tweak_opusMaxAvgRate000;" >> $WEBCFG
+                    echo "config.audioQuality.opusMaxAverageBitrate = tweak_opusMaxAvgRate000;" >> $WEBCCFG
                   fi
                   if test "enable_stereo" != 0; then
-                    echo "config.audioQuality.stereo = true;" >> $WEBCFG
+                    echo "config.audioQuality.stereo = true;" >> $WEBCCFG
                   else
-                    echo "config.audioQuality.enableOpusDtx = true;" >> $WEBCFG
+                    echo "config.audioQuality.enableOpusDtx = true;" >> $WEBCCFG
                   fi
-                  #echo "config.desktopSharingFrameRate = { min: 2, max: 10 };" >> $WEBCFG
+                  #echo "config.desktopSharingFrameRate = { min: 2, max: 10 };" >> $WEBCCFG
                   if test "jitsi_whisper_bridge" != ""; then
                     echo "config.transcription = {
                       enabled: true,
@@ -796,71 +738,142 @@ resources:
                       preferredLanguage: 'auto',
                       disableStartForAll: false,
                       autoCaptionOnRecord: false,
-                    };" >> $WEBCFG
+                    };" >> $WEBCCFG
                   fi
+                  if test -z "letsenc_mail"; then
+                    mkdir -p ~/.jitsi-meet0cfg/web/keys
+                    cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
+                    cp -p cert.key ~/.jitsi-meet-cfg/web/keys/cert.key
+                    chown 1000:1000 -R ~/.jitsi-meet-cfg/web/keys
+                  fi
+                  # Dial-In
+                  if test -n "jigasi_sip_uri"; then
+                    CPROP=~/.jitsi-meet-cfg/jigasi/custom-sip-communicator.properties
+                    echo "## Options added by run.sh script from heat-docker-jitsi-meet" > $CPROP
+                    if test -n "jigasi_default_room"; then
+                      echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room@muc.$XMPP_DOMAIN" >> $CPROP
+                    fi
+                    # avoid immediate call back
+                    echo "net.java.sip.communicator.impl.protocol.sip.SKIP_REINVITE_ON_FOCUS_CHANGE_PROP=true" >> $CPROP
+                    # This is needed for sipgate, no more according to my testing
+                    echo "org.jitsi.impl.neomedia.transform.csrc.CsrcTransformEngine.DISCARD_CONTRIBUTING_SOURCES=true" >> $CPROP
+                    # Wait 7mins for room opening
+                    echo "org.jitsi.jigasi.JVB_INVITE_TIMEOUT=420000" >> $CPROP
+                    if test -n "jitsi_whisper_bridge"; then
+                      TPASS=$(openssl rand -hex 16)
+                      PUBLIC_URL="public_url"
+                      if test -z "$PUBLIC_URL"; then PUBLIC_URL="https://public_domain:public_port/"; fi
+                      echo "# Enable transcription service on jitsi_whisper_bridge" >> $CPROP
+                      echo "org.jitsi.jigasi.ENABLE_TRANSCRIPTION=true" >> $CPROP
+                      echo "org.jitsi.jigasi.transcription.ENABLE_TRANSLATION=true" >> $CPROP
+                      echo "org.jitsi.jigasi.transcription.DIRECTORY=/tmp/transcripts" >> $CPROP
+                      echo "org.jitsi.jigasi.transcription.BASE_URL=$PUBLIC_URL/transcripts" >> $CPROP
+                      echo "org.jitsi.jigasi.transcription.jetty.port=-1" >> $CPROP
+                      echo "org.jitsi.jigasi.transcription.ADVERTISE_URL=true" >> $CPROP
+                      echo "org.jitsi.jigasi.transcription.SEND_TXT=false" >> $CPROP
+                      echo "org.jitsi.jigasi.transcription.SAVE_TXT=true" >> $CPROP
+                      echo "org.jitsi.jigasi.transcription.SEND_JSON=true" >> $CPROP
+                      echo "org.jitsi.jigasi.transcription.SAVE_JSON=false" >> $CPROP
+                      echo "org.jitsi.jigasi.transcription.customService=org.jitsi.jigasi.transcription.WhisperTranscriptionService" >> $CPROP
+                      echo "org.jitsi.jigasi.transcription.whisper.websocket_url=jitsi_whisper_bridge" >> $CPROP
+                      if test -n "whisper_bridge_secret"; then
+                        echo "org.jitsi.jigasi.transcription.whisper.private_key=whisper_bridge_secret" >> $CPROP
+                        echo "org.jitsi.jigasi.transcription.whisper.private_key_name=whisper-key-1" >> $CPROP
+                        echo "org.jitsi.jigasi.transcription.whisper.jwt_audience=whisper-service" >> $CPROP
+                      fi
+                      echo "org.jitsi.jigasi.xmpp.acc.USER_ID=transcriber@hidden.$XMPP_DOMAIN" >> $CPROP
+                      echo "org.jitsi.jigasi.xmpp.acc.PASS=$TPASS" >> $CPROP
+                      echo "org.jitsi.jigasi.xmpp.acc.ANONYMOUS_AUTH=false" >> $CPROP
+                      echo "org.jitsi.jigasi.xmpp.acc.ALLOW_NON_SECURE=true" >> $CPROP
+                    fi
+                  fi
+                  # Finally start containers
+                  eval $DCOMPOSE $DFILES -p jitsi up -d
+                  sleep 5; sync
+                  WEBCFG=/run/web/config/config.js
+                  WEBIFCFG=/run//web/config/interface_config.js
+                  echo -n "Waiting for nginx: "
+                  declare -i ctr=0
+                  while test -z "$NGINX" -a $ctr -le 120; do
+                    NGINX=$(ps -ax | grep "nginx: master" | grep -v grep | awk '{ print $1; }')
+                    echo -n "."
+                    sleep 2
+                    if test $((ctr%15)) -eq 0 -o -n "$NGINX"; then echo -en "\n "; fi
+                    let ctr+=1
+                  done
+                  docker exec jitsi-web-1 ls -l $WEBCFG
+                  if test -n "jitsi_watermark_link"; then
+                    docker exec jitsi-web-1 sed -i "s@JITSI_WATERMARK_LINK: '.*'@JITSI_WATERMARK_LINK: 'jitsi_watermark_link'@" $WEBIFCFG
+                  fi
+                  # If using LETSENCRYPT
+                  if test -n "letsenc_mail"; then
+                    LETSENC_DOM="letsenc_domain"
+                    chmod og-r ~/.jitsi-meet-cfg/storage/web/acme-certs/$LETSENC_DOM/key.pem
+                    cp -p ~/.jitsi-meet-cfg/storage/web/acme-certs/$LETSENC_DOM/key.pem cert.key
+                    cp -p ~/.jitsi-meet-cfg/storage/web/acme-certs/$LETSENC_DOM/fullchain.pem cert.crt
+                  fi
+                  # Apply fixes
+                  cp -p fixup*.sed ~/.jitsi-meet-cfg/storage/web/
+                  docker exec jitsi-web-1 sed -f /storage/fixup-welcome.sed -f /storage/fixup-transcription.sed -i $WEBCFG
+                  # 
+                  if test "tweak_AudioMuted" != 0; then
+                    docker exec jitsi-web-1 sed -i 's@^[/ ]*config\.startAudioMuted = .*$@config.startAudioMuted = tweak_AudioMuted;@' $WEBCFG
+                  fi
+                  if test "tweak_VideoMuted" != 0; then
+                    docker exec jitsi-web-1 sed -i 's@^[/ ]*config\.startVideoMuted = .*$@config.startVideoMuted = tweak_VideoMuted;@' $WEBCFG
+                  fi
+                  # Does no longer work in newer templates
+                  ASPECT="16/9"
+                  if test -n "tweak_aspectRatio"; then
+                     #sed -i "s@aspectRatio: [0-9/, ]*\$@aspectRatio: tweak_aspectRatio@" $WEBCFG
+                     ASPECT="tweak_aspectRatio"
+                  fi
+                  if test -n "tweak_ideal_height" -a "tweak_ideal_height" != "0"; then
+                     # New config style
+                     WIDTH=$((tweak_ideal_height*$ASPECT))
+                     docker exec jitsi-web-1 sed -i 's@^\(config\.resolution =\).*$@\1 tweak_ideal_height;@' $WEBCFG
+                     docker exec jitsi-web-1 sed -i "s@^\(config\.constraints\.video\.height = { ideal:\) [0-9]*,@\1 tweak_ideal_height,@" $WEBCFG
+                     docker exec jitsi-web-1 sed -i "s@^\(config\.constraints\.video\.width = { ideal:\) [0-9]*,@\1 $WIDTH,@" $WEBCFG
+                                   fi
+                  if test -n "tweak_max_height" -a "tweak_max_height" != "0"; then
+                     #sed -i "s@^\([^/]*max:\)[ 0-9]*,\$@\1 tweak_max_height,@" $WEBCFG
+                     WIDTH=$((tweak_max_height*$ASPECT))
+                     docker exec jitsi-web-1 sed -i "s@^\(config\.constraints\.video\.height = { ideal: [0-9]*, max:\) [0-9]*,@\1 tweak_max_height,@" $WEBCFG
+                     docker exec jitsi-web-1 sed -i "s@^\(config\.constraints\.video\.width = { ideal: [0-9]*, max:\) [0-9]*,@\1 $WIDTH,@" $WEBCFG
+                  fi
+                  # TODO: Ensure Simulcast is NOT disabled
+                  #docker exec jitsi-web-1 sed -i 's@^ */* *disableSimulcast:.*$@    disableSimulcast: false,@' $WEBCFG
+                  # TODO: Add tweak to enableLayerSuspension
+                  docker exec jitsi-web-1 sed -i "/config\.disableSimulcast/aconfig.enableLayerSuspension = true;" $WEBCFG
+                  # TODO: Allow SuspendVideo
+                  #docker exec jitsi-web-1 sed -i "/config\.enableLayerSuspension/aconfig.disableSuspendVideo = false;" $WEBCFG
                   sleep 1
                   # Deploy users
                   if test -n "xmpp_domain"; then XMPP_DOMAIN=xmpp_domain; else XMPP_DOMAIN=meet.jitsi; fi
                   USERS=(jitsi_user); PASSW=(jitsi_password)
                   for idx in $(seq 0 $((${#USERS[*]}-1))); do
-                    docker exec jitsi-prosody-1 prosodyctl --config /config/prosody.cfg.lua register ${USERS[$idx]} $XMPP_DOMAIN ${PASSW[$idx]}
+                    docker exec jitsi-prosody-1 prosodyctl --config /run/prosody/config/prosody.cfg.lua register ${USERS[$idx]} $XMPP_DOMAIN ${PASSW[$idx]}
                   done
                   # Restart nginx in web container to make SSL/height changes effective
                   #docker restart jitsi-web-1
-                  NGINX=$(ps -x | grep "nginx: master" | grep -v grep | awk '{ print $1; }')
+                  NGINX=$(ps -ax | grep "nginx: master" | grep -v grep | awk '{ print $1; }')
                   kill $NGINX
                   # Dial-In
                   if test -n "jigasi_sip_uri"; then
                     # Tweak jigasi default room
-                    PROP=~/.jitsi-meet-cfg/jigasi/sip-communicator.properties
-                    cp -p $PROP $PROP.orig
-                    echo "## Options added by run.sh script from heat-docker-jitsi-meet" >> $PROP
-                    if test -n "jigasi_default_room"; then
-                      echo "org.jitsi.jigasi.DEFAULT_JVB_ROOM_NAME=jigasi_default_room@muc.$XMPP_DOMAIN" >> $PROP
-                    fi
+                    PROP=/run/jigasi/config/sip-communicator.properties
                     # enable GSM, Speex, SILK (better compat)
-                    sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=690@' $PROP
+                    docker exec jitsi-jigasi-1 sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.GSM/8000=690@' $PROP
                     # Do not enable this
-                    #sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/24000=900' $PROP
-                    sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/32000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/32000=25@' $PROP
-                    sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/16000=20@' $PROP
-                    sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.SILK/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.SILK/16000=15@' $PROP
-                    # avoid immediate call back
-                    echo "net.java.sip.communicator.impl.protocol.sip.SKIP_REINVITE_ON_FOCUS_CHANGE_PROP=true" >> $PROP
-                    # This is needed for sipgate, no more according to my testing
-                    echo "org.jitsi.impl.neomedia.transform.csrc.CsrcTransformEngine.DISCARD_CONTRIBUTING_SOURCES=true" >> $PROP
-                    # Wait 7mins for room opening
-                    echo "org.jitsi.jigasi.JVB_INVITE_TIMEOUT=420000" >> $PROP
+                    #docker exec jitsi-jigasi-1 sed -i '/net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus\/48000=1000/a net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.opus/24000=900' $PROP
+                    docker exec jitsi-jigasi-1 sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/32000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/32000=25@' $PROP
+                    docker exec jitsi-jigasi-1 sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.speex/16000=20@' $PROP
+                    docker exec jitsi-jigasi-1 sed -i 's@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.SILK/16000=0@net.java.sip.communicator.impl.protocol.sip.acc1.Encodings.SILK/16000=15@' $PROP
                     if test -n "jitsi_whisper_bridge"; then
-                      TPASS=$(openssl rand -hex 16)
-                      PUBLIC_URL="public_url"
-                      if test -z "$PUBLIC_URL"; then PUBLIC_URL="https://public_domain:public_port/"; fi
-                      docker exec jitsi-prosody-1 prosodyctl --config /config/prosody.cfg.lua register transcriber hidden.$XMPP_DOMAIN $TPASS
-                      echo "# Enable transcription service on jitsi_whisper_bridge" >> $PROP
-                      echo "org.jitsi.jigasi.ENABLE_TRANSCRIPTION=true" >> $PROP
-                      echo "org.jitsi.jigasi.transcription.ENABLE_TRANSLATION=true" >> $PROP
-                      echo "org.jitsi.jigasi.transcription.DIRECTORY=/tmp/transcripts" >> $PROP
-                      echo "org.jitsi.jigasi.transcription.BASE_URL=$PUBLIC_URL/transcripts" >> $PROP
-                      echo "org.jitsi.jigasi.transcription.jetty.port=-1" >> $PROP
-                      echo "org.jitsi.jigasi.transcription.ADVERTISE_URL=true" >> $PROP
-                      echo "org.jitsi.jigasi.transcription.SEND_TXT=false" >> $PROP
-                      echo "org.jitsi.jigasi.transcription.SAVE_TXT=true" >> $PROP
-                      echo "org.jitsi.jigasi.transcription.SEND_JSON=true" >> $PROP
-                      echo "org.jitsi.jigasi.transcription.SAVE_JSON=false" >> $PROP
-                      echo "org.jitsi.jigasi.transcription.customService=org.jitsi.jigasi.transcription.WhisperTranscriptionService" >> $PROP
-                      echo "org.jitsi.jigasi.transcription.whisper.websocket_url=jitsi_whisper_bridge" >> $PROP
-                      if test -n "whisper_bridge_secret"; then
-                        echo "org.jitsi.jigasi.transcription.whisper.private_key=whisper_bridge_secret" >> $PROP
-                        echo "org.jitsi.jigasi.transcription.whisper.private_key_name=whisper-key-1" >> $PROP
-                        echo "org.jitsi.jigasi.transcription.whisper.jwt_audience=whisper-service" >> $PROP
-                      fi
-                      echo "org.jitsi.jigasi.xmpp.acc.USER_ID=transcriber@hidden.$XMPP_DOMAIN" >> $PROP
-                      echo "org.jitsi.jigasi.xmpp.acc.PASS=$TPASS" >> $PROP
-                      echo "org.jitsi.jigasi.xmpp.acc.ANONYMOUS_AUTH=false" >> $PROP
-                      echo "org.jitsi.jigasi.xmpp.acc.ALLOW_NON_SECURE=true" >> $PROP
+                      docker exec jitsi-prosody-1 prosodyctl --config /run/prosody/config/prosody.cfg.lua register transcriber hidden.$XMPP_DOMAIN $TPASS
                     fi
                     # And restart jigasi container
-                    #docker restart jitsi-jigasi-1
+                    # docker restart jitsi-jigasi-1
                     JIGASI=$(ps axlw | grep jigasi | grep java | awk '{print $3;}')
                     kill $JIGASI
                   fi
