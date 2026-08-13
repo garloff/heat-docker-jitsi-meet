@@ -52,7 +52,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-10655
+    default: stable-10888
     #default: stable
 
   # Default 0 is autodetect (using the MTU from the default route's NIC)
@@ -576,6 +576,7 @@ resources:
                     echo "ENABLE_RECORDING=1" >> .env
                     #sed -i 's@^XMPP_RECORDER_DOMAIN=.*@XMPP_REORDER_DOMAIN=recorder.$XMPP_DOMAIN@' .env
                     #echo "XMPP_RECORDER_DOMAIN=recorder.$XMPP_DOMAIN" >> .env
+                    sed -i '/volumes:/a\            - ${CONFIG}/transcripts:/tmp/transcripts:Z' jigasi.yml
                   fi
             path: /root/config-env.sh
             permissions: '0700'
@@ -833,7 +834,7 @@ resources:
                       echo "org.jitsi.jigasi.ENABLE_TRANSCRIPTION=true" >> $PROP
                       echo "org.jitsi.jigasi.transcription.ENABLE_TRANSLATION=true" >> $PROP
                       echo "org.jitsi.jigasi.transcription.DIRECTORY=/tmp/transcripts" >> $PROP
-                      echo "org.jitsi.jigasi.transcription.BASE_URL=https://$PUBLIC_URL/transcripts" >> $PROP
+                      echo "org.jitsi.jigasi.transcription.BASE_URL=$PUBLIC_URL/transcripts" >> $PROP
                       echo "org.jitsi.jigasi.transcription.jetty.port=-1" >> $PROP
                       echo "org.jitsi.jigasi.transcription.ADVERTISE_URL=true" >> $PROP
                       echo "org.jitsi.jigasi.transcription.SEND_TXT=false" >> $PROP
