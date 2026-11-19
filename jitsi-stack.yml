@@ -52,7 +52,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-11248-3
+    default: stable-11509
     #default: stable
 
   # Default 0 is autodetect (using the MTU from the default route's NIC)
@@ -369,7 +369,7 @@ resources:
                   cd ~
                   mkdir -p ~/.jitsi-meet-cfg/{web/letsencrypt,web/nginx,transcripts,prosody,jicofo,jvb,jigasi/log}
                   mkdir -p ~/.jitsi-meet-cfg/storage/{jibri,prosody,transcripts,web}
-                   mkdir -p ~/.jitsi-meet-cfg/tmp/{web-crontabs,web-load-test}
+                  mkdir -p ~/.jitsi-meet-cfg/tmp/{web-crontabs,web-load-test}
                   chown -R 1000:1000 ~/.jitsi-meet-cfg
                   #chown 999:1000 ~/.jitsi-meet-cfg/jigasi/log
                   # Generate Diffie-Hellmann parameters for SSL
