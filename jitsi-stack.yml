@@ -430,9 +430,6 @@ resources:
                   mv buildx-v0.11.0.linux-amd64 ~/.docker/cli-plugins/docker-buildx
                   chmod +x ~/.docker/cli-plugins/docker-buildx
                   sed -i -e 's@,linux/arm64@@g' -e 's/ \-\-push//g' Makefile
-                  # Fixup chrome download
-                  sed -i 's@edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/@/storage.googleapis.com/chrome-for-testing-public/@g' jibri/rootfs/usr/bin/install-chrome.sh
-                  sed -i 's@ARG CHROME_RELEASE=130.0.6723.116@ARG CHROME_RELEASE=143.0.7499.40@' jibri/Dockerfile
                   make buildx-all JITSI_BUILD=stable JITSI_RELEASE=latest
                   # FIXME: Remove openjdk-17-jre-headless and install openjdk-11-jre-headless
                   # in jigasi to fix Unable to handle format: LINEAR, 48000.0 Hz, 16-bit, Mono, LittleEndian, Signed
@@ -510,9 +507,10 @@ resources:
                   sed -i 's@HTTPS_PORT=.*$@HTTPS_PORT=public_port@' .env
                   sed -i 's@TZ=.*$@TZ=timezone@' .env
                   #sed -i 's@^#ETHERPAD_URL_BASE@ETHERPAD_URL_BASE@' .env
+                  #FIXME: Do we need to tweak it to set XMPP_DOMAIN
                   sed -i 's@^#ENABLE_AUTH@ENABLE_AUTH@' .env
                   sed -i 's@^#ENABLE_GUESTS@ENABLE_GUESTS@' .env
-                  sed -i 's@^#*ENABLE_PREJOIN_PAGE=.*@ENABLE_PREJOIN_PAGE=enable_prejoin@' .env
+                  sed -i 's@^#*ENABLE_PREJOIN_PAGE=.*$@ENABLE_PREJOIN_PAGE=enable_prejoin@' .env
                   sed -i 's@^#AUTH_TYPE=@AUTH_TYPE=@' .env
                   #sed -i 's@^JVB_STUN_SERVERS=.*$@JVB_STUN_SERVERS=stun_servers@' .env
                   echo "JVB_STUN_SERVERS=stun_servers" >> .env
@@ -554,6 +552,7 @@ resources:
                   fi
                   if test "enable_whiteboard" = "True"; then
                     sed -i 's/^#WHITEBOARD_COLLAB_SERVER_URL_BASE/WHITEBOARD_COLLAB_SERVER_URL_BASE/' .env
+                    #FIXME: Do we need to tweak it to set XMPP_DOMAIN
                   fi
                   if test -n "turn_credentials"; then
                     echo "TURN_CREDENTIALS=\"turn_credentials\"" >> .env
@@ -740,7 +739,7 @@ resources:
                     };" >> $WEBCCFG
                   fi
                   if test -z "letsenc_mail"; then
-                    mkdir -p ~/.jitsi-meet0cfg/web/keys
+                    mkdir -p ~/.jitsi-meet-cfg/web/keys
                     cp -p cert.crt ~/.jitsi-meet-cfg/web/keys/cert.crt
                     cp -p cert.key ~/.jitsi-meet-cfg/web/keys/cert.key
                     chown 1000:1000 -R ~/.jitsi-meet-cfg/web/keys
@@ -790,7 +789,7 @@ resources:
                   eval $DCOMPOSE $DFILES -p jitsi up -d
                   sleep 5; sync
                   WEBCFG=/run/web/config/config.js
-                  WEBIFCFG=/run//web/config/interface_config.js
+                  WEBIFCFG=/run/web/config/interface_config.js
                   echo -n "Waiting for nginx: "
                   declare -i ctr=0
                   while test -z "$NGINX" -a $ctr -le 120; do
@@ -833,7 +832,7 @@ resources:
                      docker exec jitsi-web-1 sed -i 's@^\(config\.resolution =\).*$@\1 tweak_ideal_height;@' $WEBCFG
                      docker exec jitsi-web-1 sed -i "s@^\(config\.constraints\.video\.height = { ideal:\) [0-9]*,@\1 tweak_ideal_height,@" $WEBCFG
                      docker exec jitsi-web-1 sed -i "s@^\(config\.constraints\.video\.width = { ideal:\) [0-9]*,@\1 $WIDTH,@" $WEBCFG
-                                   fi
+                  fi
                   if test -n "tweak_max_height" -a "tweak_max_height" != "0"; then
                      #sed -i "s@^\([^/]*max:\)[ 0-9]*,\$@\1 tweak_max_height,@" $WEBCFG
                      WIDTH=$((tweak_max_height*$ASPECT))
