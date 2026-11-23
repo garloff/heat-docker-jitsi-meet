@@ -430,6 +430,10 @@ resources:
                   mv buildx-v0.11.0.linux-amd64 ~/.docker/cli-plugins/docker-buildx
                   chmod +x ~/.docker/cli-plugins/docker-buildx
                   sed -i -e 's@,linux/arm64@@g' -e 's/ \-\-push//g' Makefile
+                  # Do package update on web container (security)
+                  sed -i '/^ *apt\-dpkg\-wrap apt\-get update &&/{
+                  a \ \ apt-dpkg-wrap apt-get upgrade -y --no-install-recommends && \\
+                  }' web/Dockerfile
                   make buildx-all JITSI_BUILD=stable JITSI_RELEASE=latest
                   # FIXME: Remove openjdk-17-jre-headless and install openjdk-11-jre-headless
                   # in jigasi to fix Unable to handle format: LINEAR, 48000.0 Hz, 16-bit, Mono, LittleEndian, Signed
