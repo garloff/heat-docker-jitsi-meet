@@ -8,7 +8,7 @@ parameters:
     type: string
     constraints:
       - custom_constraint: glance.image
-    default: openSUSE 16.0
+    default: openSUSE 16.1
 
   flavor_jitsi:
     type: string
@@ -52,7 +52,7 @@ parameters:
 
   jitsi_version:
     type: string
-    default: stable-11509
+    default: stable-11509-1
     #default: stable
 
   # Default 0 is autodetect (using the MTU from the default route's NIC)
